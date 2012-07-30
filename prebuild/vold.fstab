@@ -1,0 +1,15 @@
+## Vold 2.0 NVIDIA Harmony fstab
+
+#######################
+## Regular device mount
+##
+## Format: dev_mount <label> <mount_point> <part> <sysfs_path1...>
+## label        - Label for the volume
+## mount_point  - Where the volume will be mounted
+## part         - Partition # (1 based), or 'auto' for first usable partition.
+## <sysfs_path> - List of sysfs paths to source devices
+######################
+
+dev_mount storage_internal /mnt/sdcard 7 /devices/platform/sdhci-tegra.3/mmc_host/mmc0
+dev_mount external_sdcard /mnt/external_sd auto /devices/platform/sdhci-tegra.0/mmc_host/mmc1
+dev_mount external_usb_disk /mnt/usb_storage auto /devices/platform/tegra-ehci.2

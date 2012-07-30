@@ -1,0 +1,9 @@
+bin/
+docs/Market Icon.png
+gen/
+libs/
+local.properties
+obj/
+.classpath
+.project
+.settings/

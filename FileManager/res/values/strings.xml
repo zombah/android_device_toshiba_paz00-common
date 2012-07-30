@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Open Manager</string>
+    <string name="search">Search</string>
+    <string name="bt_title_text">Bluetooth Transfer</string>
+    <string name="bt_button_text">start bluetooth</string>
+    <string name="num_of_folders">Number of folders: </string>
+    <string name="num_of_files">Number of files: </string>
+    <string name="last_modified">Last Modified: </string>
+    <string name="total_size">Total size: </string>
+    <string name="file_permissions">File Permissions: </string>
+    <string name="read">Read: </string>
+    <string name="write">Write: </string>
+    <string name="execute">Execute: </string>
+    <string name="search_button_open_text">Launch this file</string>
+    <string name="search_button_go_text">Go to this file</string>
+</resources>

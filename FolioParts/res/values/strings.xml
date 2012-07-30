@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Folio 100 Settings</string>
+
+    <!-- Page Headers -->
+    <string name="general_title">GENERAL</string>
+    <string name="display_title">DISPLAY</string>
+
+    <string name="dpi_title_head">Density</string>
+    <string name="dpi_summary_head">Set your prefered density</string>
+    
+</resources>

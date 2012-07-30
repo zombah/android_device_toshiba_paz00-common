@@ -1,0 +1,4 @@
+#!/system/bin/sh
+#echo "2" > /proc/irq/53/smp_affinity
+#echo "2" > /proc/irq/63/smp_affinity
+#echo "2" > /proc/irq/124/smp_affinity
