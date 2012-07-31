@@ -41,7 +41,7 @@
 
 // Playback
 #define MIXER_MASTER_PLAYBACK_VOLUME		"Master Playback Volume"
-#define MIXER_MASTER_PLAYBACK_SWITCH		"Master Playback Volume"
+#define MIXER_MASTER_PLAYBACK_SWITCH		"Master Playback Switch"
 
 #define MIXER_SPEAKER_PLAYBACK_VOLUME		"Speaker Playback Volume"
 #define MIXER_SPEAKER_PLAYBACK_SWITCH		"Speaker Playback Switch"
