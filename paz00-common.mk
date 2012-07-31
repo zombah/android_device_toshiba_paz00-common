@@ -58,6 +58,8 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/toshiba/paz00-common/prebuild/vold.fstab:system/etc/vold.fstab
 
+PRODUCT_COPY_FILES += device/toshiba/paz00-common/prebuild/tiny_hw.xml:system/etc/sound/paz00.xml
+
 
 # WiFi/BT Firmware
 PRODUCT_COPY_FILES += \
@@ -72,8 +74,6 @@ PRODUCT_COPY_FILES += \
 
 # Alsa config files
 PRODUCT_COPY_FILES += \
-    device/toshiba/paz00-common/prebuild/asound.conf:/system/etc/asound.conf \
-    device/toshiba/paz00-common/prebuild/libasound.so:/system/lib/libasound.so \
     device/toshiba/paz00-common/alsa/alsa.conf:/system/usr/share/alsa/alsa.conf \
     device/toshiba/paz00-common/alsa/cards/aliases.conf:/system/usr/share/alsa/cards/aliases.conf \
     device/toshiba/paz00-common/alsa/pcm/modem.conf:/system/usr/share/alsa/pcm/modem.conf \
