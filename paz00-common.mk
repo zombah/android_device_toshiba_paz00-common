@@ -45,21 +45,18 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/toshiba/paz00-common/keymaps/cpcap-key.kcm:system/usr/keychars/cpcap-key.kcm \
     device/toshiba/paz00-common/keymaps/gpio-keys.kcm:system/usr/keychars/gpio-keys.kcm \
-    device/toshiba/paz00-common/keymaps/nvec_cir.kcm:system/usr/keychars/nvec_cir.kcm \
+    device/toshiba/paz00-common/keymaps/NVEC_power_button.kcm:system/usr/keychars/NVEC_power_button.kcm \
     device/toshiba/paz00-common/keymaps/nvec_keyboard.kcm:system/usr/keychars/nvec_keyboard.kcm \
-    device/toshiba/paz00-common/keymaps/tegra-kbc.kcm:system/usr/keychars/tegra-kbc.kcm \
+    device/toshiba/paz00-common/keymaps/NVEC_sleep_button.kcm:system/usr/keychars/NVEC_sleep_button.kcm \
     device/toshiba/paz00-common/keymaps/cpcap-key.kl:system/usr/keylayout/cpcap-key.kl \
     device/toshiba/paz00-common/keymaps/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl \
-    device/toshiba/paz00-common/keymaps/nvec_cir.kl:system/usr/keylayout/nvec_cir.kl \
+    device/toshiba/paz00-common/keymaps/NVEC_power_button.kl:system/usr/keylayout/NVEC_power_button.kl \
     device/toshiba/paz00-common/keymaps/nvec_keyboard.kl:system/usr/keylayout/nvec_keyboard.kl \
-    device/toshiba/paz00-common/keymaps/tegra-kbc.kl:system/usr/keylayout/tegra-kbc.kl 
+    device/toshiba/paz00-common/keymaps/NVEC_sleep_button.kl:system/usr/keylayout/NVEC_sleep_button.kl 
 
 # Vold
 PRODUCT_COPY_FILES += \
     device/toshiba/paz00-common/prebuild/vold.fstab:system/etc/vold.fstab
-
-PRODUCT_COPY_FILES += device/toshiba/paz00-common/prebuild/tiny_hw.xml:system/etc/sound/paz00.xml
-
 
 # WiFi/BT Firmware
 PRODUCT_COPY_FILES += \
