@@ -4,7 +4,7 @@
    <!-- We are able to have most of our routing static so do that -->
    <path>
      <!-- Master Playback -->
-     <ctl name="Master Playback Volume" val="1" />
+     <ctl name="Master Playback Volume" val="63" />
      <ctl name="Master Playback Switch" val="1" />
 
      <!-- Headphones -->
@@ -16,7 +16,7 @@
      <ctl name="Right Headphone Mux" val="HP Right Mix" />
 
      <!-- Speakers -->
-     <ctl name="Speaker Playback Volume" val="1" />
+     <ctl name="Speaker Playback Volume" val="15" />
      <!--<ctl name="Speaker Playback Switch" val="1" />-->
      <ctl name="Int Spk Switch" val="1" />
      <ctl name="Speaker Mix DAC2SPK Playback Switch" val="1" />
