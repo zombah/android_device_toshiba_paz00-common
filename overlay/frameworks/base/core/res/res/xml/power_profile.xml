@@ -28,7 +28,6 @@
   <item name="wifi.scan">6.5</item>
   <item name="dsp.audio">14.1</item>
   <item name="dsp.video">54.0</item>
-  <item name="gps.on">29.7</item>
   <item name="radio.active">71.5</item>
   <item name="radio.scanning">1.2</item>
   <array name="radio.on"> <!-- Strength 0 to BINS-1 (4) -->
