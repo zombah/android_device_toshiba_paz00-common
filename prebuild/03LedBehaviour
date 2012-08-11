@@ -1,0 +1,5 @@
+#!/system/bin/sh
+# Change wifi led behaviour
+echo mmc0 > /sys/class/leds/wifi-led/trigger
+# Change nvec leds behaviour
+#echo mmc1 > /sys/class/leds/nvec-led/trigger
