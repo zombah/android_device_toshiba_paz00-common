@@ -921,6 +921,7 @@ static uint32_t adev_get_supported_devices(const struct audio_hw_device *dev)
     for (i = 0; i < adev->num_dev_cfgs; i++)
 	supported |= adev->dev_cfgs[i].mask;
 
+    LOGI("Supported devices: '%u'\n", supported);
     return supported;
 }
 
