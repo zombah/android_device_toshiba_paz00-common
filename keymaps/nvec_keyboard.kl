@@ -19,6 +19,7 @@ key 62    MEDIA_NEXT	    WAKE
 key 63    TV                WAKE
 key 64    ZOOM_IN           WAKE
 key 65    ZOOM_OUT          WAKE
+key 66	  ENDCALL	    WAKE
 key 68    VOLUME_DOWN       WAKE
 key 87    VOLUME_UP         WAKE
 key 88    VOLUME_MUTE	    WAKE
