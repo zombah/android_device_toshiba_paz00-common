@@ -61,6 +61,7 @@ BUILD_WITH_ALSA_UTILS			:= false
 BOARD_USES_GENERIC_AUDIO 		:= false
 BOARD_USES_AUDIO_LEGACY 		:= false
 TARGET_USES_OLD_LIBSENSORS_HAL 		:= false
+# Tinyhal
 BOARD_USES_TINY_AUDIO_HW 		:= true
 
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
@@ -109,3 +110,5 @@ BOARD_SKIP_ANDROID_DOC_BUILD		:= true
 # kbd libsensor from android-x86
 BOARD_USES_KBDSENSOR 			:= true
 BOARD_USES_KBDSENSOR_ROTKEY2		:= true
+
+BOARD_USE_SCREENCAP 			:= true
