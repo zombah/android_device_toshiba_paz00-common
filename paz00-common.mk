@@ -20,6 +20,7 @@ PRODUCT_COPY_FILES += \
     device/toshiba/paz00-common/prebuild/init.nv_dev_board.usb.rc:root/init.nv_dev_board.usb.rc \
     device/toshiba/paz00-common/prebuild/init.local.rc:system/etc/init.local.rc \
     device/toshiba/paz00-common/prebuild/ueventd.paz00.rc:root/ueventd.paz00.rc \
+    device/toshiba/paz00-common/prebuild/tiny_hw.xml:system/etc/sound/ac100_116.xml \
     device/toshiba/paz00-common/prebuild/media_profiles.xml:system/etc/media_profiles.xml \
     device/toshiba/paz00-common/prebuild/excluded-input-devices.xml:system/etc/excluded-input-devices.xml \
     device/toshiba/paz00-common/prebuild/egalax_i2c.idc:system/usr/idc/egalax_i2c.idc \
