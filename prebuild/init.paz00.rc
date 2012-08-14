@@ -246,3 +246,7 @@ on property:net.netdump.enable=1
 
 on property:net.netdump.enable=0
     stop netdump-service
+
+# Powerbutton daemon from android-x86
+service powerbtnd /system/bin/powerbtnd
+    class main

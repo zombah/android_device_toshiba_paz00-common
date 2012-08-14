@@ -15,10 +15,8 @@
 -->
 
 <devices>
-    <device
-        name="AVRCP" />
-    <device
-        name="USB 2.0 Camera" />
-    <device
-        name="USB Camera" />
+    <device name="AVRCP" />
+    <device name="USB 2.0 Camera" />
+    <device name="USB Camera" />
+    <device name="NVEC power button" />
 </devices>
