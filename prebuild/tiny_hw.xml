@@ -25,13 +25,13 @@
      <ctl name="AB-D Amp Mux" val="AB Amp" />
 
      <!-- Master Capture -->
-     <ctl name="Rec Capture Volume" val="1" />
+     <ctl name="Rec Capture Volume" val="20" />
 
      <!-- Internal Mic -->
      <!--<ctl name="DMIC En Capture Switch" val="1" />-->
      <ctl name="DMIC PreFilter Capture Switch" val="1" />
      <ctl name="DMICL Mix DMICL2ADC Capture Switch" val="1" />
-     <ctl name="DMIC Boost Capture Volume" val="1" />
+     <ctl name="DMIC Boost Capture Volume" val="3" />
 
      <!-- Internal Mic -->
      <!--<ctl name="Left Capture Mix MIC12REC_L Capture Switch" val="0" />-->
