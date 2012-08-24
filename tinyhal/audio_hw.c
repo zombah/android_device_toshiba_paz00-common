@@ -172,6 +172,14 @@ static int adev_set_voice_volume(struct audio_hw_device *dev, float volume);
 static int do_input_standby(struct m0_stream_in *in);
 static int do_output_standby(struct m0_stream_out *out);
 
+static void log_stream_info(const char* func, struct m0_stream_in *in)
+{
+	LOGE("%s: ch:%d, rate:%d, format:%d\n", func,
+			in->config.channels, in->config.rate, in->config.format);
+	LOGE("%s: requested_rate:%d\n", func, in->requested_rate);
+}
+
+
 /* The enable flag when 0 makes the assumption that enums are disabled by
  * "Off" and integers/booleans by 0 */
 static int set_bigroute_by_array(struct mixer *mixer, struct route_setting *route,
@@ -1097,6 +1105,8 @@ static int start_input_stream(struct m0_stream_in *in)
     int ret = 0;
     struct m0_audio_device *adev = in->dev;
 
+	log_stream_info("start_input_stream", in);
+
     adev->active_input = in;
 
     if (adev->mode != AUDIO_MODE_IN_CALL) {
@@ -1984,6 +1994,8 @@ static int adev_open_input_stream(struct audio_hw_device *dev, uint32_t devices,
 
     memcpy(&in->config, &pcm_config_capture, sizeof(pcm_config_capture));
     in->config.channels = channel_count;
+
+	log_stream_info("adev_open_input_stream", in);
 
     if (in->requested_rate != in->config.rate) {
         in->buf_provider.get_next_buffer = get_next_buffer;
