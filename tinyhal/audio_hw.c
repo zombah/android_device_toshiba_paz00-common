@@ -1965,7 +1965,10 @@ static int adev_open_input_stream(struct audio_hw_device *dev, uint32_t devices,
     struct m0_audio_device *ladev = (struct m0_audio_device *)dev;
     struct m0_stream_in *in;
     int ret;
-    int channel_count = popcount(*channel_mask);
+    int channel_count;
+
+    *channels = AUDIO_CHANNEL_IN_STEREO;
+    channel_count = popcount(*channel_mask);
 
     if (check_input_parameters(*sample_rate, *format, channel_count) != 0)
         return -EINVAL;
