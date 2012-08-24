@@ -1,0 +1,10 @@
+<resources>
+    <!-- Workspace grid size -->
+    <integer name="config_workspaceRows">7</integer>
+    <integer name="config_workspaceColumns">9</integer>
+    <integer name="config_maxWorkspaceRows">7</integer>
+    <integer name="config_maxWorkspaceColumns">9</integer>
+
+    <!-- Allow tablets to set grid size in settings, false disables -->
+    <bool name="config_workspaceTabletGrid">true</bool>
+</resources>
