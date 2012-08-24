@@ -23,7 +23,7 @@
 #define PORT_PLAYBACK 0
 #define PORT_MODEM    1
 #define PORT_BT       2
-#define PORT_CAPTURE  3
+#define PORT_CAPTURE  0
 
 #define PLAYBACK_PERIOD_SIZE  880
 #define PLAYBACK_PERIOD_COUNT 8
