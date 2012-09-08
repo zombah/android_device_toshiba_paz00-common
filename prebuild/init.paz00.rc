@@ -59,16 +59,9 @@ on fs
     insmod /system/lib/modules/cdc-wdm.ko
 # install tun for vpns
     insmod /system/lib/modules/tun.ko
-# install ppp modules
-#    insmod /system/lib/modules/slhc.ko
-#    insmod /system/lib/modules/ppp_generic.ko
-#    insmod /system/lib/modules/ppp_async.ko
-#    insmod /system/lib/modules/ppp_deflate.ko
-#    insmod /system/lib/modules/ppp_synctty.ko
 # install additional modules
     insmod /system/lib/modules/lm90.ko
     insmod /system/lib/modules/tegra_wdt.ko
-#    insmod /system/lib/modules/fuse.ko
 
 on post-fs-data
     mkdir /data/misc/wifi 0770 wifi wifi
@@ -207,21 +200,21 @@ service iprenew_wlan0 /system/bin/dhcpcd -n
 #    group root
 
 #Prepare TF service
-service tf_daemon /system/bin/tf_daemon -storageDir /data/tf
-    disabled
-    class main
-    user root
-    group shell
-    oneshot
+#service tf_daemon /system/bin/tf_daemon -storageDir /data/tf
+#    disabled
+#    class main
+#    user root
+#    group shell
+#    oneshot
 
 service hwprops /sbin/hwprops
     disabled
     oneshot
 
 #Create data directory and start service
-on property:tf.enable=y
-    mkdir /data/tf
-    start tf_daemon
+#on property:tf.enable=y
+#    mkdir /data/tf
+#    start tf_daemon
 
 # Postboot service
 service picasso_postboot /system/bin/sh /picasso_postboot.sh
@@ -237,16 +230,46 @@ on property:init.svc.bootanim=stopped
 #    user root
 
 # Enable tcpdump-service
-service netdump-service /system/xbin/tcpdump -i any -C 5 -p -s 0 -w /sdcard/netdump.cap
-    user root
-    disabled
+#service netdump-service /system/xbin/tcpdump -i any -C 5 -p -s 0 -w /sdcard/netdump.cap
+#    user root
+#    disabled
 
-on property:net.netdump.enable=1
-    start netdump-service
+#on property:net.netdump.enable=1
+#    start netdump-service
 
-on property:net.netdump.enable=0
-    stop netdump-service
+#on property:net.netdump.enable=0
+#    stop netdump-service
 
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
     class main
+
+# 3G library selection                                                                             
+service wwlanselect /system/bin/sh /system/bin/wwlan_select.sh                                     
+    disabled                                                                                       
+    class main                                                                                     
+    user root                                                                                      
+    group shell                                                                                    
+    oneshot                                                                                        
+                                                                                                   
+on device-added-/dev/ttyUSB0                                                                       
+    start wwlanselect                                                                              
+on device-added-/dev/ttyUSB1                                                                       
+    start wwlanselect                                                                              
+on device-added-/dev/ttyUSB2                                                                       
+    start wwlanselect                                                                              
+on device-added-/dev/ttyUSB3                                                                       
+    start wwlanselect                                                                              
+                                                                                                   
+on device-removed-/dev/ttyUSB0                                                                     
+    stop ril-daemon                                                                                
+on device-removed-/dev/ttyUSB1                                                                     
+    stop ril-daemon                                                                                
+on device-removed-/dev/ttyUSB2                                                                     
+    stop ril-daemon                                                                                
+on device-removed-/dev/ttyUSB3                                                                     
+    stop ril-daemon                                                                                
+                                                                                                   
+on property:init.svc.bootanim=stopped                                                              
+    start wwlanselect
+
