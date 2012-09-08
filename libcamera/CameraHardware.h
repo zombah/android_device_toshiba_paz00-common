@@ -35,16 +35,16 @@ public:
      * Note that failures in this method are reported as negave EXXX statuses.
      */
     status_t setPreviewWindow(struct preview_stream_ops *window);
-
+	
     /* Actual handler for camera_device_ops_t::set_callbacks callback.
      * NOTE: When this method is called the object is locked.
      */
-    void     setCallbacks(camera_notify_callback notify_cb,
-                                  camera_data_callback data_cb,
-                                  camera_data_timestamp_callback data_cb_timestamp,
-                                  camera_request_memory get_memory,
-                                  void* user);
-
+	void 	 setCallbacks(camera_notify_callback notify_cb, 
+								  camera_data_callback data_cb,
+								  camera_data_timestamp_callback data_cb_timestamp,
+								  camera_request_memory get_memory,
+								  void* user);
+	
     /* Actual handler for camera_device_ops_t::enable_msg_type callback.
      * NOTE: When this method is called the object is locked.
      */
@@ -54,7 +54,7 @@ public:
      * NOTE: When this method is called the object is locked.
      */
     void disableMsgType(int32_t msg_type);
-
+	
     /* Actual handler for camera_device_ops_t::msg_type_enabled callback.
      * NOTE: When this method is called the object is locked.
      * Return:
@@ -79,7 +79,7 @@ public:
      *  0 if preview is disabled, != 0 if enabled.
      */
     int isPreviewEnabled();
-
+	
     /* Actual handler for camera_device_ops_t::store_meta_data_in_buffers callback.
      * NOTE: When this method is called the object is locked.
      * Note that failures in this method are reported as negave EXXX statuses.
@@ -103,12 +103,12 @@ public:
      *  0 if recording is disabled, != 0 if enabled.
      */
     int isRecordingEnabled();
-
+	
     /* Actual handler for camera_device_ops_t::release_recording_frame callback.
      * NOTE: When this method is called the object is locked.
      */
     void releaseRecordingFrame(const void* opaque);
-
+	
     /* Actual handler for camera_device_ops_t::auto_focus callback.
      * NOTE: When this method is called the object is locked.
      * Note that failures in this method are reported as negave EXXX statuses.
@@ -126,7 +126,7 @@ public:
      * Note that failures in this method are reported as negave EXXX statuses.
      */
     status_t takePicture();
-
+	
     /* Actual handler for camera_device_ops_t::cancel_picture callback.
      * NOTE: When this method is called the object is locked.
      * Note that failures in this method are reported as negave EXXX statuses.
@@ -147,7 +147,7 @@ public:
      */
     char* getParameters();
 
-    /*
+	/*
      * Called to free the string returned from camera_device_ops_t::get_parameters
      * callback. There is nothing more to it: the name of the callback is just
      * misleading.
@@ -165,15 +165,15 @@ public:
      * NOTE: When this method is called the object is locked.
      */
     void releaseCamera();
-
-
-    status_t dumpCamera(int fd);
+	
+	
+	status_t dumpCamera(int fd);
 
 private:
 
-    bool PowerOn();
-    bool PowerOff();
-    bool NegotiatePreviewFormat(struct preview_stream_ops* win);
+	bool PowerOn();
+	bool PowerOff();
+	bool NegotiatePreviewFormat(struct preview_stream_ops* win);
 
 public:
     /* Constructs Camera instance.
@@ -182,11 +182,11 @@ public:
      *      instance in camera factory's array.
      *  module - Emulated camera HAL module descriptor.
      */
-    CameraHardware(const hw_module_t* module, char* devLocation);
+    CameraHardware(const hw_module_t* module, const char* videodev);
 
     /* Destructs EmulatedCamera instance. */
     virtual ~CameraHardware();
-
+	
     /****************************************************************************
      * Camera API implementation
      ***************************************************************************/
@@ -212,8 +212,8 @@ public:
      * NOTE: When this method is called the object is locked.
      * Note that failures in this method are reported as negave EXXX statuses.
      */
-    static status_t getCameraInfo(struct camera_info* info, int facing);
-
+    static status_t getCameraInfo(int camera_id, struct camera_info* info);
+	
 private:
 
     static const int kBufferCount = 4;
@@ -221,18 +221,18 @@ private:
     void initDefaultParameters();
     void initHeapLocked();
 
-    class PreviewThread : public Thread {
-        CameraHardware* mHardware;
-
-    public:
-        PreviewThread(CameraHardware* hw);
-        virtual void onFirstRef();
-        virtual bool threadLoop();
-    };
+	class PreviewThread : public Thread {
+		CameraHardware* mHardware;
+		
+	public:
+		PreviewThread(CameraHardware* hw);
+		virtual void onFirstRef();
+		virtual bool threadLoop();
+	};
 
     status_t startPreviewLocked();
-    void     stopPreviewLocked();
-
+    void 	 stopPreviewLocked();
+	
     int previewThread();
 
     static int beginAutoFocusThread(void *cookie);
@@ -245,47 +245,47 @@ private:
 
     mutable Mutex       mLock;
 
-    preview_stream_ops* mWin;
-    int                 mPreviewWinFmt;
-    int                 mPreviewWinWidth;
-    int                 mPreviewWinHeight;
+    preview_stream_ops*	mWin;
+	int					mPreviewWinFmt;
+	int					mPreviewWinWidth;
+	int					mPreviewWinHeight;
 
     CameraParameters    mParameters;
-    char*               mVideoDevice;
 
-    camera_memory_t*    mRawPreviewHeap;
-    int                 mRawPreviewFrameSize;
-    void*               mRawPreviewBuffer;
-    int                 mRawPreviewWidth;
-    int                 mRawPreviewHeight;
 
-    camera_memory_t*    mPreviewHeap;
-    int                 mPreviewFrameSize;
-    void*               mPreviewBuffer[kBufferCount];
-    int                 mPreviewFmt;
-
-    camera_memory_t*    mRawPictureHeap;
-    void*               mRawBuffer;
-    int                 mRawPictureBufferSize;
-
-    camera_memory_t*    mRecordingHeap;
-    void*               mRecBuffers[kBufferCount];
-    int                 mRecordingFrameSize;
-    int                 mRecFmt;
-
-    camera_memory_t*    mJpegPictureHeap;
-    int                 mJpegPictureBufferSize;
+    camera_memory_t*  	mRawPreviewHeap;
+	int					mRawPreviewFrameSize;
+	void*			    mRawPreviewBuffer;
+	int					mRawPreviewWidth;
+	int					mRawPreviewHeight;
+	
+    camera_memory_t*  	mPreviewHeap;
+	int                 mPreviewFrameSize;
+	void*               mPreviewBuffer[kBufferCount];
+	int					mPreviewFmt;
+		
+    camera_memory_t*  	mRawPictureHeap;
+	void*			    mRawBuffer;
+	int					mRawPictureBufferSize;
+    
+	camera_memory_t*  	mRecordingHeap;
+    void*		        mRecBuffers[kBufferCount];
+	int                 mRecordingFrameSize;
+	int					mRecFmt;
+	
+    camera_memory_t*  	mJpegPictureHeap;
+	int					mJpegPictureBufferSize;
 
     V4L2Camera          camera;
     bool                mRecordingEnabled;
-
+    
     // protected by mLock
     sp<PreviewThread>   mPreviewThread;
 
-    camera_notify_callback      mNotifyCb;
-    camera_data_callback        mDataCb;
+    camera_notify_callback    	mNotifyCb;
+    camera_data_callback      	mDataCb;
     camera_data_timestamp_callback mDataCbTimestamp;
-    camera_request_memory mRequestMemory;
+	camera_request_memory mRequestMemory;
     void               *mCallbackCookie;
 
     int32_t             mMsgEnabled;
@@ -293,9 +293,7 @@ private:
     // only used from PreviewThread
     int                 mCurrentPreviewFrame;
     int                 mCurrentRecordingFrame;
-
-    char*               mCameraPowerFile;
-
+	
     /****************************************************************************
      * Camera API callbacks as defined by camera_device_ops structure.
      * See hardware/libhardware/include/hardware/camera.h for information on
@@ -339,7 +337,7 @@ private:
     static void release(struct camera_device* dev);
     static int dump(struct camera_device* dev, int fd);
     static int close(struct hw_device_t* device);
-
+	
 private:
 
     /* Registered callbacks implementing camera API. */

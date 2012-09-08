@@ -1,30 +1,30 @@
-/*
+/* 
 	libcamera: An implementation of the library required by Android OS 3.2 so
 	it can access V4L2 devices as cameras.
-
+ 
     (C) 2011 Eduardo José Tagle <ejtagle@tutopia.com>
 	(C) 2011 RedScorpion
-
+	
 	Based on several packages:
 		- luvcview: Sdl video Usb Video Class grabber
 			(C) 2005,2006,2007 Laurent Pinchart && Michel Xhaard
 
-		- spcaview
+		- spcaview 
 			(C) 2003,2004,2005,2006 Michel Xhaard
-
+		
 		- JPEG decoder from http://www.bootsplash.org/
-			(C) August 2001 by Michael Schroeder, <mls@suse.de>
+			(C) August 2001 by Michael Schroeder, <mls@suse.de> 
 
 		- libcamera V4L for Android 2.2
 			(C) 2009 0xlab.org - http://0xlab.org/
 			(C) 2010 SpectraCore Technologies
 				Author: Venkat Raju <codredruids@spectracoretech.com>
 				Based on a code from http://code.google.com/p/android-m912/downloads/detail?name=v4l2_camera_v2.patch
-
+ 
 		- guvcview:  http://guvcview.berlios.de
 			Paulo Assis <pj.assis@gmail.com>
 			Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
-
+	 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -37,31 +37,30 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+	
  */
-
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-extern "C" {
 #include <jpeglib.h>
-}
+};
 #include "Converter.h"
 #include "V4L2Camera.h"
 
 /*clip value between 0 and 255*/
 #define CLIP(value) (uint8_t)(((value)>0xFF)?0xff:(((value)<0)?0:(value)))
 
-
+ 
 /* convert yuyv to YVU420SP */
 void yuyv_to_yvu420sp(uint8_t *dst,int dstStride, int dstHeight, uint8_t *src, int srcStride, int width, int height)
 {
 	// Start of Y plane
 	uint8_t* dstY = dst;
-
+	
 	// Calculate start of UV plane
 	uint8_t* dstVU = dst + dstStride * dstHeight;
-
+	
 	int h=0;
 	int w=0;
 	int dyvu = dstStride - width;
@@ -99,13 +98,13 @@ void yuyv_to_yvu420p(uint8_t *dst,int dstStride, int dstHeight, uint8_t *src, in
 
 	// Start of Y plane
 	uint8_t* dstY = dst;
-
+	
 	// Calculate start of V plane
 	uint8_t* dstV = dst + dstStride * dstHeight;
-
+	
 	// Calculate start of U plane
 	uint8_t* dstU = dstV + (dstVUStride * dstHeight >> 1);
-
+	
 	int h=0;
 	int w=0;
 	int dy  = dstStride - width;
@@ -143,13 +142,13 @@ void yuyv_to_yuv420p(uint8_t *dst,int dstStride, int dstHeight, uint8_t *src, in
 
 	// Start of Y plane
 	uint8_t* dstY = dst;
-
+	
 	// Calculate start of U plane
 	uint8_t* dstU = dst + dstStride * dstHeight;
-
+	
 	// Calculate start of V plane
 	uint8_t* dstV = dstU + (dstUVStride * dstHeight >> 1);
-
+	
 	int h=0;
 	int w=0;
 	int dy  = dstStride - width;
@@ -189,13 +188,13 @@ void yuyv_to_yvu422p(uint8_t *dst,int dstStride, int dstHeight, uint8_t *src, in
 
 	// Start of Y plane
 	uint8_t* dstY = dst;
-
+	
 	// Calculate start of U plane
 	uint8_t* dstV = dst + dstStride * dstHeight;
-
+	
 	// Calculate start of V plane
 	uint8_t* dstU = dstV + (dstVUStride * dstHeight);
-
+	
 	int h=0;
 	int w=0;
 	int dy  = dstStride - width;
@@ -217,7 +216,7 @@ void yuyv_to_yvu422p(uint8_t *dst,int dstStride, int dstHeight, uint8_t *src, in
 
 
 /*convert y16 (grey) to yuyv (packed)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing y16 (grey) data frame
@@ -232,10 +231,10 @@ void y16_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int w
 	int w=0;
 	int dw = dstStride - (width << 1);
 	int sw = (srcStride>>1) - width;
-
-	for(h=0;h<height;h++)
+	
+	for(h=0;h<height;h++) 
 	{
-		for(w=0;w<width;w+=2)
+		for(w=0;w<width;w+=2) 
 		{
 			/* Y0 */
 			*dst++ = (uint8_t) (ptmp[0] & 0xFF00) >> 8;
@@ -245,7 +244,7 @@ void y16_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int w
 			*dst++ = (uint8_t) (ptmp[1] & 0xFF00) >> 8;
 			/* V */
 			*dst++ = 0x7F;
-
+			
 			ptmp += 2;
 		}
 		dst  += dw; // Correct for stride
@@ -254,7 +253,7 @@ void y16_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int w
 }
 
 /*convert yyuv (packed) to yuyv (packed)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yyuv packed data frame
@@ -267,15 +266,15 @@ void yyuv_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 	uint8_t *pfmb=NULL;
 	ptmp = src;
 	pfmb = dst;
-
+	
 	int h=0;
 	int w=0;
 	int dw = dstStride - (width << 1);
 	int sw = srcStride - (width << 1);
-
-	for(h=0;h<height;h++)
+	
+	for(h=0;h<height;h++) 
 	{
-		for(w=0;w<width;w+=2)
+		for(w=0;w<width;w+=2) 
 		{
 			/* Y0 */
 			*pfmb++ = ptmp[0];
@@ -285,7 +284,7 @@ void yyuv_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 			*pfmb++ = ptmp[1];
 			/* V */
 			*pfmb++ = ptmp[3];
-
+			
 			ptmp += 4;
 		}
 		pfmb += dw; // Correct for stride
@@ -295,7 +294,7 @@ void yyuv_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 
 
 /*convert uyvy (packed) to yuyv (packed)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing uyvy packed data frame
@@ -310,10 +309,10 @@ void uyvy_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 	int w=0;
 	int dw = dstStride - (width << 1);
 	int sw = srcStride - (width << 1);
-
-	for(h=0;h<height;h++)
+	
+	for(h=0;h<height;h++) 
 	{
-		for(w=0;w<width;w+=2)
+		for(w=0;w<width;w+=2) 
 		{
 			/* Y0 */
 			*pfmb++ = ptmp[1];
@@ -323,7 +322,7 @@ void uyvy_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 			*pfmb++ = ptmp[3];
 			/* V */
 			*pfmb++ = ptmp[2];
-
+			
 			ptmp += 4;
 		}
 		pfmb += dw; // Correct for stride
@@ -333,7 +332,7 @@ void uyvy_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 
 
 /*convert yvyu (packed) to yuyv (packed)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yvyu packed data frame
@@ -346,15 +345,15 @@ void yvyu_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 	uint8_t *pfmb=NULL;
 	ptmp = src;
 	pfmb = dst;
-
+	
 	int h=0;
 	int w=0;
 	int dw = dstStride - (width << 1);
 	int sw = srcStride - (width << 1);
-
-	for(h=0;h<height;h++)
+	
+	for(h=0;h<height;h++) 
 	{
-		for(w=0;w<width;w+=2)
+		for(w=0;w<width;w+=2) 
 		{
 			/* Y0 */
 			*pfmb++ = ptmp[0];
@@ -364,7 +363,7 @@ void yvyu_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 			*pfmb++ = ptmp[2];
 			/* V */
 			*pfmb++ = ptmp[1];
-
+			
 			ptmp += 4;
 		}
 		pfmb += dw; // Correct for stride
@@ -373,71 +372,71 @@ void yvyu_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 }
 
 /*convert yuv 420 planar (yu12) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yuv420 planar data frame
 *      width: picture width
 *      height: picture height
 */
-void yuv420_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height)
+void yuv420_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height) 
 {
 	uint8_t *py;
 	uint8_t *pu;
 	uint8_t *pv;
-
+	
 	int linesize = width * 2;
 	int uvlinesize = width / 2;
 	int offsety=0;
 	int offsetuv=0;
 	int dw = dstStride - (width << 1);
-
+	
 	py=src;
 	pu=py+(width*height);
 	pv=pu+(width*height/4);
-
+	
 	int h=0;
 	int w=0;
-
+	
 	int wy=0;
 	int wuv=0;
-
+	
 	offsety = 0;
 	offsetuv = 0;
-
-	for(h=0;h<height;h+=2)
+	
+	for(h=0;h<height;h+=2) 
 	{
 		wy=0;
 		wuv=0;
-
-		for(w=0;w<linesize;w+=4)
+		
+		for(w=0;w<linesize;w+=4) 
 		{
 			/*y00*/
 			*dst++        = py[wy + offsety];
 			/*y10*/
 			dst[dstStride-1] = py[wy + offsety + width];
-
+			
 			/*u0*/
 			uint8_t u0 = pu[wuv + offsetuv];
 			*dst++        = u0;
 			/*u0*/
 			dst[dstStride-1] = u0;
-
+			
 			/*y01*/
 			*dst++        = py[(wy + 1) + offsety];
 			/*y11*/
 			dst[dstStride-1] = py[(wy + 1) + offsety + width];
-
+			
 			/*v0*/
 			uint8_t u1 = pv[wuv + offsetuv];
 			*dst++        = u1;
 			/*v0*/
 			dst[dstStride-1] = u1;
-
+			
 			wuv++;
 			wy+=2;
 		}
-
+		
 		dst += dstStride + dw;
 		offsety  += width * 2;
 		offsetuv += uvlinesize;
@@ -445,137 +444,137 @@ void yuv420_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int he
 }
 
 /*convert yvu 420 planar (yv12) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yuv420 planar data frame
 *      width: picture width
 *      height: picture height
 */
-void yvu420_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height)
+void yvu420_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height) 
 {
 	uint8_t *py;
 	uint8_t *pv;
 	uint8_t *pu;
-
+	
 	int linesize = width * 2;
 	int uvlinesize = width / 2;
 	int offsety=0;
 	int offsetuv=0;
 	int dw = dstStride - (width << 1);
-
+	
 	py=src;
 	pv=py+(width*height);
 	pu=pv+((width*height)/4);
-
+	
 	int h=0;
 	int w=0;
-
+	
 	int wy=0;
 	int wuv=0;
 
 	offsety = 0;
 	offsetuv = 0;
 
-	for(h=0;h<height;h+=2)
+	for(h=0;h<height;h+=2) 
 	{
 		wy=0;
 		wuv=0;
-
-		for(w=0;w<linesize;w+=4)
+		
+		for(w=0;w<linesize;w+=4) 
 		{
 			/*y00*/
 			*dst++ = py[wy + offsety];
 			/*y10*/
 			dst[dstStride-1] = py[wy + offsety + width];
-
+			
 			/*u0*/
 			uint8_t u0 = pu[wuv + offsetuv];
 			*dst++ = u0;
 			/*u0*/
 			dst[dstStride-1] = u0;
-
+			
 			/*y01*/
 			*dst++ = py[(wy + 1) + offsety];
 			/*y11*/
 			dst[dstStride-1] = py[(wy + 1) + offsety +  width];
-
+			
 			/*v0*/
 			uint8_t v0 = pv[wuv + offsetuv];
 			*dst++ = v0;
 			/*v0*/
 			dst[dstStride-1] = v0;
-
+			
 			wuv++;
 			wy+=2;
 		}
 		dst += dstStride + dw;
 		offsety += width * 2;
 		offsetuv += uvlinesize;
-
+				
 	}
 }
 
 /*convert yuv 420 planar (uv interleaved) (nv12) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yuv420 (nv12) planar data frame
 *      width: picture width
 *      height: picture height
 */
-void nv12_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height)
+void nv12_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height) 
 {
 	uint8_t *py;
 	uint8_t *puv;
-
+	
 	int linesize = width * 2;
 	int offsety=0;
 	int offsetuv=0;
 	int dw = dstStride - (width << 1);
-
+	
 	py=src;
 	puv=py+(width*height);
-
+	
 	int h=0;
 	int w=0;
-
+	
 	int wy=0;
 	int wuv=0;
-
-	for(h=0;h<height;h+=2)
+	
+	for(h=0;h<height;h+=2) 
 	{
 		wy=0;
 		wuv=0;
 
-		for(w=0;w<linesize;w+=4)
+		for(w=0;w<linesize;w+=4) 
 		{
 			/*y00*/
 			*dst++ = py[wy + offsety];
 			/*y10*/
 			dst[dstStride-1] = py[wy + offsety + width];
-
+			
 			/*u0*/
 			uint8_t u0 = puv[wuv + offsetuv];
 			*dst++ = u0;
 			/*u0*/
 			dst[dstStride-1] = u0;
-
+			
 			/*y01*/
 			*dst++ = py[(wy + 1) + offsety];
 			/*y11*/
 			dst[dstStride-1] = py[(wy + 1) + offsety + width];
-
+			
 			/*v0*/
 			uint8_t v0 = puv[(wuv + 1) + offsetuv];
 			*dst++ = v0;
 			/*v0*/
 			dst[dstStride-1] = v0;
-
+			
 			wuv+=2;
 			wy+=2;
 		}
-
+		
 		dst += dstStride + dw;
 		offsety += width * 2;
 		offsetuv +=  width;
@@ -583,75 +582,75 @@ void nv12_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 }
 
 /*convert yuv 420 planar (vu interleaved) (nv21) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yuv420 (nv21) planar data frame
 *      width: picture width
 *      height: picture height
 */
-void nv21_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height)
+void nv21_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int height) 
 {
 	uint8_t *py;
 	uint8_t *puv;
-
+	
 	int linesize = width * 2;
 	int offsety=0;
 	int offsetuv=0;
 	int dw = dstStride - (width << 1);
-
+	
 	py=src;
 	puv=py+(width*height);
-
+	
 	int h=0;
 	int w=0;
-
+	
 	int wy=0;
 	int wuv=0;
-
-	for(h=0;h<height;h+=2)
+	
+	for(h=0;h<height;h+=2) 
 	{
 		wy=0;
 		wuv=0;
-
-		for(w=0;w<linesize;w+=4)
+		
+		for(w=0;w<linesize;w+=4) 
 		{
 			/*y00*/
 			*dst++ = py[wy + offsety];
 			/*y10*/
 			dst[dstStride-1] = py[wy + offsety + width];
-
+			
 			/*u0*/
 			uint8_t u0 = puv[(wuv + 1) + offsetuv];
 			*dst++ = u0;
 			/*u0*/
 			dst[dstStride-1] = u0;
-
+		
 			/*y01*/
 			*dst++ = py[(wy + 1) + offsety];
-
+			
 			/*y11*/
 			dst[dstStride-1] = py[(wy + 1) + offsety + width];
-
+			
 			/*v0*/
 			uint8_t v0 = puv[wuv + offsetuv];
 			*dst++ = v0;
 			/*v0*/
 			dst[dstStride-1] = v0;
-
+			
 			wuv+=2;
 			wy+=2;
 		}
-
+		
 		dst += dstStride + dw;
-		offsety += width * 2;
+		offsety += width * 2;		
 		offsetuv += width;
 
 	}
 }
 
 /*convert yuv 422 planar (uv interleaved) (nv16) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yuv422 (nv16) planar data frame
@@ -662,27 +661,27 @@ void nv16_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 {
 	uint8_t *py;
 	uint8_t *puv;
-
+	
 	int linesize = width * 2;
 	int offsety=0;
 	int offsetuv=0;
 	int dw = dstStride - (width << 1);
-
+	
 	py=src;
 	puv=py+(width*height);
-
+	
 	int h=0;
 	int w=0;
-
+	
 	int wy=0;
 	int wuv=0;
-
-	for(h=0;h<height;h++)
+	
+	for(h=0;h<height;h++) 
 	{
 		wy=0;
 		wuv=0;
 
-		for(w=0;w<linesize;w+=4)
+		for(w=0;w<linesize;w+=4) 
 		{
 			/*y00*/
 			*dst++ = py[wy + offsety];
@@ -692,7 +691,7 @@ void nv16_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 			*dst++ = py[(wy + 1) + offsety];
 			/*v0*/
 			*dst++ = puv[(wuv + 1) + offsetuv];
-
+			
 			wuv+=2;
 			wy+=2;
 		}
@@ -703,7 +702,7 @@ void nv16_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 }
 
 /*convert yuv 422 planar (vu interleaved) (nv61) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing yuv422 (nv61) planar data frame
@@ -714,26 +713,26 @@ void nv61_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 {
 	uint8_t *py;
 	uint8_t *puv;
-
+	
 	int linesize = width * 2;
 	int offsety=0;
 	int offsetuv=0;
 	int dw = dstStride - (width << 1);
-
+	
 	py=src;
 	puv=py+(width*height);
-
+	
 	int h=0;
 	int w=0;
-
+	
 	int wy=0;
 	int wuv=0;
-
-	for(h=0;h<height;h++)
+	
+	for(h=0;h<height;h++) 
 	{
 		wy=0;
 		wuv=0;
-		for(w=0;w<linesize;w+=4)
+		for(w=0;w<linesize;w+=4) 
 		{
 			/*y00*/
 			*dst++ = py[wy + offsety];
@@ -743,19 +742,19 @@ void nv61_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 			*dst++ = py[(wy + 1) + offsety];
 			/*v0*/
 			*dst++ = puv[wuv + offsetuv];
-
+			
 			wuv+=2;
 			wy+=2;
 		}
 		dst += dw;
 		offsety += width;
 		offsetuv += width;
-
+		
 	}
 }
 
 /*convert yuv 411 packed (y41p) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing y41p data frame
@@ -769,7 +768,7 @@ void y41p_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 	int linesize = width * 3 /2;
 	int offset = 0;
 	int dw = dstStride - (width << 1);
-
+	
 	for(h=0;h<height;h++)
 	{
 		offset = linesize * h;
@@ -797,7 +796,7 @@ void y41p_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int width, int heig
 }
 
 /*convert yuv mono (grey) to yuv 422
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing grey (y only) data frame
@@ -810,7 +809,7 @@ void grey_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 	int w=0;
 	int dw = dstStride - (width << 1);
 	int sw = srcStride - width;
-
+	
 	for(h=0;h<height;h++)
 	{
 		for(w=0;w<width;w++)
@@ -826,7 +825,7 @@ void grey_to_yuyv (uint8_t *dst,int dstStride, uint8_t *src, int srcStride, int 
 /*convert SPCA501 (s501) to yuv 422
 * s501  |Y0..width..Y0|U..width/2..U|Y1..width..Y1|V..width/2..V|
 * signed values (-128;+127) must be converted to unsigned (0; 255)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing s501 data frame
@@ -841,13 +840,13 @@ void s501_to_yuyv(uint8_t *dst,int dstStride, uint8_t *src, int width, int heigh
 	int dw = dstStride - (width << 1);
 
 	Y0 = src; /*fisrt line*/
-	for (h = 0; h < height/2; h++ )
+	for (h = 0; h < height/2; h++ ) 
 	{
 		line2 = dst + dstStride;   /* next line          */
 		U = Y0 + width;
 		Y1 = U + width / 2;
 		V = Y1 + width;
-		for (w = width / 2; --w >= 0; )
+		for (w = width / 2; --w >= 0; ) 
 		{
 			*dst++ = 0x80 + *Y0++;
 			*dst++ = 0x80 + *U;
@@ -867,7 +866,7 @@ void s501_to_yuyv(uint8_t *dst,int dstStride, uint8_t *src, int width, int heigh
 /*convert SPCA505 (s505) to yuv 422
 * s505  |Y0..width..Y0|Y1..width..Y1|U..width/2..U|V..width/2..V|
 * signed values (-128;+127) must be converted to unsigned (0; 255)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing s501 data frame
@@ -882,13 +881,13 @@ void s505_to_yuyv(uint8_t *dst,int dstStride, uint8_t *src, int width, int heigh
 	int dw = dstStride - (width << 1);
 
 	Y0 = src; /*fisrt line*/
-	for (h = 0; h < height/2; h++ )
+	for (h = 0; h < height/2; h++ ) 
 	{
 		line2 = dst + dstStride;   /* next line          */
 		Y1 = Y0 + width;
 		U  = Y1 + width;
 		V  = U + width/2;
-		for (w = width / 2; --w >= 0; )
+		for (w = width / 2; --w >= 0; ) 
 		{
 			*dst++ = 0x80 + *Y0++;
 			*dst++ = 0x80 + *U;
@@ -908,7 +907,7 @@ void s505_to_yuyv(uint8_t *dst,int dstStride, uint8_t *src, int width, int heigh
 /*convert SPCA508 (s508) to yuv 422
 * s508  |Y0..width..Y0|U..width/2..U|V..width/2..V|Y1..width..Y1|
 * signed values (-128;+127) must be converted to unsigned (0; 255)
-* args:
+* args: 
 *      dst: pointer to frame buffer (yuyv)
 *      dstStride: stride of framebuffer
 *      src: pointer to temp buffer containing s501 data frame
@@ -923,13 +922,13 @@ void s508_to_yuyv(uint8_t *dst,int dstStride, uint8_t *src, int width, int heigh
 	int dw = dstStride - (width << 1);
 
 	Y0 = src; /*fisrt line*/
-	for (h = 0; h < height/2; h++ )
+	for (h = 0; h < height/2; h++ ) 
 	{
 		line2 = dst + dstStride;   /* next line          */
 		U = Y0 + width;
 		V = U + width/2;
 		Y1= V + width/2;
-		for (w = width / 2; --w >= 0; )
+		for (w = width / 2; --w >= 0; ) 
 		{
 			*dst++ = 0x80 + *Y0++;
 			*dst++ = 0x80 + *U;
@@ -946,29 +945,29 @@ void s508_to_yuyv(uint8_t *dst,int dstStride, uint8_t *src, int width, int heigh
 	}
 }
 
-// raw bayer functions
+// raw bayer functions 
 // from libv4l bayer.c, (C) 2008 Hans de Goede <j.w.r.degoede@hhs.nl>
 //Note: original bayer_to_bgr24 code from :
 //  1394-Based Digital Camera Control Library
-//
+// 
 //  Bayer pattern decoding functions
-//
+// 
 //  Written by Damien Douxchamps and Frederic Devernay
 static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacent_bayer,
 	uint8_t *bgr, int width, bool start_with_green, bool blue_line)
 {
 	int t0, t1;
 
-	if (start_with_green)
+	if (start_with_green) 
 	{
 	/* First pixel */
-		if (blue_line)
+		if (blue_line) 
 		{
 			*bgr++ = bayer[1];
 			*bgr++ = bayer[0];
 			*bgr++ = adjacent_bayer[0];
-		}
-		else
+		} 
+		else 
 		{
 			*bgr++ = adjacent_bayer[0];
 			*bgr++ = bayer[0];
@@ -977,13 +976,13 @@ static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacen
 		/* Second pixel */
 		t0 = (bayer[0] + bayer[2] + adjacent_bayer[1] + 1) / 3;
 		t1 = (adjacent_bayer[0] + adjacent_bayer[2] + 1) >> 1;
-		if (blue_line)
+		if (blue_line) 
 		{
 			*bgr++ = bayer[1];
 			*bgr++ = t0;
 			*bgr++ = t1;
-		}
-		else
+		} 
+		else 
 		{
 			*bgr++ = t1;
 			*bgr++ = t0;
@@ -992,18 +991,18 @@ static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacen
 		bayer++;
 		adjacent_bayer++;
 		width -= 2;
-	}
-	else
+	} 
+	else 
 	{
 		/* First pixel */
 		t0 = (bayer[1] + adjacent_bayer[0] + 1) >> 1;
-		if (blue_line)
+		if (blue_line) 
 		{
 			*bgr++ = bayer[0];
 			*bgr++ = t0;
 			*bgr++ = adjacent_bayer[1];
-		}
-		else
+		} 
+		else 
 		{
 			*bgr++ = adjacent_bayer[1];
 			*bgr++ = t0;
@@ -1012,9 +1011,9 @@ static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacen
 		width--;
 	}
 
-	if (blue_line)
+	if (blue_line) 
 	{
-		for ( ; width > 2; width -= 2)
+		for ( ; width > 2; width -= 2) 
 		{
 			t0 = (bayer[0] + bayer[2] + 1) >> 1;
 			*bgr++ = t0;
@@ -1031,10 +1030,10 @@ static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacen
 			bayer++;
 			adjacent_bayer++;
 		}
-	}
-	else
+	} 
+	else 
 	{
-		for ( ; width > 2; width -= 2)
+		for ( ; width > 2; width -= 2) 
 		{
 			t0 = (bayer[0] + bayer[2] + 1) >> 1;
 			*bgr++ = adjacent_bayer[1];
@@ -1053,17 +1052,17 @@ static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacen
 		}
 	}
 
-	if (width == 2)
+	if (width == 2) 
 	{
 		/* Second to last pixel */
 		t0 = (bayer[0] + bayer[2] + 1) >> 1;
-		if (blue_line)
+		if (blue_line) 
 		{
 			*bgr++ = t0;
 			*bgr++ = bayer[1];
 			*bgr++ = adjacent_bayer[1];
-		}
-		else
+		} 
+		else 
 		{
 			*bgr++ = adjacent_bayer[1];
 			*bgr++ = bayer[1];
@@ -1071,29 +1070,29 @@ static void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacen
 		}
 		/* Last pixel */
 		t0 = (bayer[1] + adjacent_bayer[2] + 1) >> 1;
-		if (blue_line)
+		if (blue_line) 
 		{
 			*bgr++ = bayer[2];
 			*bgr++ = t0;
 			*bgr++ = adjacent_bayer[1];
 		}
-		else
+		else 
 		{
 			*bgr++ = adjacent_bayer[1];
 			*bgr++ = t0;
 			*bgr++ = bayer[2];
 		}
-	}
-	else
+	} 
+	else 
 	{
 		/* Last pixel */
-		if (blue_line)
+		if (blue_line) 
 		{
 			*bgr++ = bayer[0];
 			*bgr++ = bayer[1];
 			*bgr++ = adjacent_bayer[1];
-		}
-		else
+		} 
+		else 
 		{
 			*bgr++ = adjacent_bayer[1];
 			*bgr++ = bayer[1];
@@ -1111,26 +1110,26 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 	bgr += width * 3;
 
 	/* reduce height by 2 because of the special case top/bottom line */
-	for (height -= 2; height; height--)
+	for (height -= 2; height; height--) 
 	{
 		int t0, t1;
 		/* (width - 2) because of the border */
 		uint8_t *bayerEnd = bayer + (width - 2);
 
-		if (start_with_green)
+		if (start_with_green) 
 		{
 			/* OpenCV has a bug in the next line, which was
 			t0 = (bayer[0] + bayer[width * 2] + 1) >> 1; */
 			t0 = (bayer[1] + bayer[width * 2 + 1] + 1) >> 1;
 			/* Write first pixel */
 			t1 = (bayer[0] + bayer[width * 2] + bayer[width + 1] + 1) / 3;
-			if (blue_line)
+			if (blue_line) 
 			{
 				*bgr++ = t0;
 				*bgr++ = t1;
 				*bgr++ = bayer[width];
-			}
-			else
+			} 
+			else 
 			{
 				*bgr++ = bayer[width];
 				*bgr++ = t1;
@@ -1139,31 +1138,31 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 
 			/* Write second pixel */
 			t1 = (bayer[width] + bayer[width + 2] + 1) >> 1;
-			if (blue_line)
+			if (blue_line) 
 			{
 				*bgr++ = t0;
 				*bgr++ = bayer[width + 1];
 				*bgr++ = t1;
-			}
-			else
+			} 
+			else 
 			{
 				*bgr++ = t1;
 				*bgr++ = bayer[width + 1];
 				*bgr++ = t0;
 			}
 			bayer++;
-		}
-		else
+		} 
+		else 
 		{
 			/* Write first pixel */
 			t0 = (bayer[0] + bayer[width * 2] + 1) >> 1;
-			if (blue_line)
+			if (blue_line) 
 			{
 				*bgr++ = t0;
 				*bgr++ = bayer[width];
 				*bgr++ = bayer[width + 1];
-			}
-			else
+			} 
+			else 
 			{
 				*bgr++ = bayer[width + 1];
 				*bgr++ = bayer[width];
@@ -1171,9 +1170,9 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 			}
 		}
 
-		if (blue_line)
+		if (blue_line) 
 		{
-			for (; bayer <= bayerEnd - 2; bayer += 2)
+			for (; bayer <= bayerEnd - 2; bayer += 2) 
 			{
 				t0 = (bayer[0] + bayer[2] + bayer[width * 2] +
 					bayer[width * 2 + 2] + 2) >> 2;
@@ -1191,10 +1190,10 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 				*bgr++ = bayer[width + 2];
 				*bgr++ = t1;
 			}
-		}
-		else
+		} 
+		else 
 		{
-			for (; bayer <= bayerEnd - 2; bayer += 2)
+			for (; bayer <= bayerEnd - 2; bayer += 2) 
 			{
 				t0 = (bayer[0] + bayer[2] + bayer[width * 2] +
 					bayer[width * 2 + 2] + 2) >> 2;
@@ -1214,7 +1213,7 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 			}
 		}
 
-		if (bayer < bayerEnd)
+		if (bayer < bayerEnd) 
 		{
 			/* write second to last pixel */
 			t0 = (bayer[0] + bayer[2] + bayer[width * 2] +
@@ -1222,13 +1221,13 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 			t1 = (bayer[1] + bayer[width] +
 				bayer[width + 2] + bayer[width * 2 + 1] +
 				2) >> 2;
-			if (blue_line)
+			if (blue_line) 
 			{
 				*bgr++ = t0;
 				*bgr++ = t1;
 				*bgr++ = bayer[width + 1];
-			}
-			else
+			} 
+			else 
 			{
 				*bgr++ = bayer[width + 1];
 				*bgr++ = t1;
@@ -1236,32 +1235,32 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 			}
 			/* write last pixel */
 			t0 = (bayer[2] + bayer[width * 2 + 2] + 1) >> 1;
-			if (blue_line)
+			if (blue_line) 
 			{
 				*bgr++ = t0;
 				*bgr++ = bayer[width + 2];
 				*bgr++ = bayer[width + 1];
-			}
-			else
+			} 
+			else 
 			{
 				*bgr++ = bayer[width + 1];
 				*bgr++ = bayer[width + 2];
 				*bgr++ = t0;
 			}
 			bayer++;
-		}
+		} 
 		else
 		{
 			/* write last pixel */
 			t0 = (bayer[0] + bayer[width * 2] + 1) >> 1;
 			t1 = (bayer[1] + bayer[width * 2 + 1] + bayer[width] + 1) / 3;
-			if (blue_line)
+			if (blue_line) 
 			{
 				*bgr++ = t0;
 				*bgr++ = t1;
 				*bgr++ = bayer[width + 1];
-			}
-			else
+			} 
+			else 
 			{
 				*bgr++ = bayer[width + 1];
 				*bgr++ = t1;
@@ -1281,7 +1280,7 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 }
 
 /*convert bayer raw data to rgb24
-* args:
+* args: 
 *      pBay: pointer to buffer containing Raw bayer data data
 *      pRGB24: pointer to buffer containing rgb24 data
 *      width: picture width
@@ -1290,25 +1289,25 @@ static void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int heigh
 */
 void bayer_to_rgb24(uint8_t *pBay, uint8_t *pRGB24, int width, int height, int pix_order)
 {
-	switch (pix_order)
+	switch (pix_order) 
 	{
 		//conversion functions are build for bgr, by switching b and r lines we get rgb
 		case 0: /* gbgbgb... | rgrgrg... (V4L2_PIX_FMT_SGBRG8)*/
 			bayer_to_rgbbgr24(pBay, pRGB24, width, height, true, false);
 			break;
-
+		
 		case 1: /* grgrgr... | bgbgbg... (V4L2_PIX_FMT_SGRBG8)*/
 			bayer_to_rgbbgr24(pBay, pRGB24, width, height, true, true);
 			break;
-
+		
 		case 2: /* bgbgbg... | grgrgr... (V4L2_PIX_FMT_SBGGR8)*/
 			bayer_to_rgbbgr24(pBay, pRGB24, width, height, false, false);
 			break;
-
+		
 		case 3: /* rgrgrg... ! gbgbgb... (V4L2_PIX_FMT_SRGGB8)*/
 			bayer_to_rgbbgr24(pBay, pRGB24, width, height, false, true);
 			break;
-
+			
 		default: /* default is 0*/
 			bayer_to_rgbbgr24(pBay, pRGB24, width, height, true, false);
 			break;
@@ -1316,22 +1315,22 @@ void bayer_to_rgb24(uint8_t *pBay, uint8_t *pRGB24, int width, int height, int p
 }
 
 
-void rgb_to_yuyv(uint8_t *pyuv, int dstStride, uint8_t *prgb, int srcStride, int width, int height)
+void rgb_to_yuyv(uint8_t *pyuv, int dstStride, uint8_t *prgb, int srcStride, int width, int height) 
 {
 
 	int h;
 	int dw = dstStride - (width << 1);
 	for (h=0;h<height;h++) {
 		int i=0;
-		for(i=0;i<(width*3);i=i+6)
+		for(i=0;i<(width*3);i=i+6) 
 		{
-			/* y */
+			/* y */ 
 			*pyuv++ =CLIP(0.299 * (prgb[i] - 128) + 0.587 * (prgb[i+1] - 128) + 0.114 * (prgb[i+2] - 128) + 128);
 			/* u */
 			*pyuv++ =CLIP(((- 0.147 * (prgb[i] - 128) - 0.289 * (prgb[i+1] - 128) + 0.436 * (prgb[i+2] - 128) + 128) +
 				(- 0.147 * (prgb[i+3] - 128) - 0.289 * (prgb[i+4] - 128) + 0.436 * (prgb[i+5] - 128) + 128))/2);
-			/* y1 */
-			*pyuv++ =CLIP(0.299 * (prgb[i+3] - 128) + 0.587 * (prgb[i+4] - 128) + 0.114 * (prgb[i+5] - 128) + 128);
+			/* y1 */ 
+			*pyuv++ =CLIP(0.299 * (prgb[i+3] - 128) + 0.587 * (prgb[i+4] - 128) + 0.114 * (prgb[i+5] - 128) + 128); 
 			/* v*/
 			*pyuv++ =CLIP(((0.615 * (prgb[i] - 128) - 0.515 * (prgb[i+1] - 128) - 0.100 * (prgb[i+2] - 128) + 128) +
 				(0.615 * (prgb[i+3] - 128) - 0.515 * (prgb[i+4] - 128) - 0.100 * (prgb[i+5] - 128) + 128))/2);
@@ -1341,21 +1340,21 @@ void rgb_to_yuyv(uint8_t *pyuv, int dstStride, uint8_t *prgb, int srcStride, int
 	}
 }
 
-void bgr_to_yuyv(uint8_t *pyuv, int dstStride, uint8_t *pbgr, int srcStride, int width, int height)
+void bgr_to_yuyv(uint8_t *pyuv, int dstStride, uint8_t *pbgr, int srcStride, int width, int height) 
 {
 	int h;
 	int dw = dstStride - (width << 1);
 	for (h=0;h<height;h++) {
 		int i=0;
-		for(i=0;i<(width*3);i=i+6)
+		for(i=0;i<(width*3);i=i+6) 
 		{
-			/* y */
+			/* y */ 
 			*pyuv++ =CLIP(0.299 * (pbgr[i+2] - 128) + 0.587 * (pbgr[i+1] - 128) + 0.114 * (pbgr[i] - 128) + 128);
 			/* u */
 			*pyuv++ =CLIP(((- 0.147 * (pbgr[i+2] - 128) - 0.289 * (pbgr[i+1] - 128) + 0.436 * (pbgr[i] - 128) + 128) +
 				(- 0.147 * (pbgr[i+5] - 128) - 0.289 * (pbgr[i+4] - 128) + 0.436 * (pbgr[i+3] - 128) + 128))/2);
-			/* y1 */
-			*pyuv++ =CLIP(0.299 * (pbgr[i+5] - 128) + 0.587 * (pbgr[i+4] - 128) + 0.114 * (pbgr[i+3] - 128) + 128);
+			/* y1 */ 
+			*pyuv++ =CLIP(0.299 * (pbgr[i+5] - 128) + 0.587 * (pbgr[i+4] - 128) + 0.114 * (pbgr[i+3] - 128) + 128); 
 			/* v*/
 			*pyuv++ =CLIP(((0.615 * (pbgr[i+2] - 128) - 0.515 * (pbgr[i+1] - 128) - 0.100 * (pbgr[i] - 128) + 128) +
 				(0.615 * (pbgr[i+5] - 128) - 0.515 * (pbgr[i+4] - 128) - 0.100 * (pbgr[i+3] - 128) + 128))/2);
@@ -1381,7 +1380,7 @@ static inline uint16_t  make565(int red, int green, int blue)
 
 #define FIX1P8(x) ((int)((x) * (1<<8)))
 
-static inline int clip(int x)
+static inline int clip(int x) 
 {
 	if (x > 255)
 		x = 255;
@@ -1396,13 +1395,13 @@ void yuyv_to_rgb565_line (uint8_t *pyuv, uint8_t *prgb, int width)
 	int l=0;
 	int ln = width >> 1;
 	uint16_t *p = (uint16_t *)prgb;
-
-	for(l=0; l<ln; l++)
+	
+	for(l=0; l<ln; l++) 
 	{	/*iterate every 4 bytes*/
-
+	
 		int u  = pyuv[1] - 128;
 		int v  = pyuv[3] - 128;
-
+		
 		int ri = (                       + FIX1P8(1.402)   * v) >> 8;
 		int gi = ( - FIX1P8(0.34414) * u - FIX1P8(0.71414) * v) >> 8;
 		int bi = ( + FIX1P8(1.772)   * u                      ) >> 8;
@@ -1420,14 +1419,14 @@ void yuyv_to_rgb565_line (uint8_t *pyuv, uint8_t *prgb, int width)
 			clip(y0 + gi),
 			clip(y0 + bi)
 			);
-
+		
 		int y1 = pyuv[2];
 		*p++ = make565(
 			clip(y1 + ri),
 			clip(y1 + gi),
 			clip(y1 + bi)
 			);
-
+		
 		pyuv += 4;
 	}
 }
@@ -1436,8 +1435,8 @@ void yuyv_to_rgb565_line (uint8_t *pyuv, uint8_t *prgb, int width)
 void yuyv_to_rgb565 (uint8_t *pyuv, int pyuvstride, uint8_t *prgb,int prgbstride, int width, int height)
 {
 	int h=0;
-	for(h=0;h<height;h++)
-	{
+	for(h=0;h<height;h++) 
+	{	
 		yuyv_to_rgb565_line (pyuv,prgb,width);
 		pyuv += pyuvstride;
 		prgb += prgbstride;
@@ -1449,13 +1448,13 @@ void yuyv_to_rgb24_line (uint8_t *pyuv, uint8_t *prgb, int width)
 {
 	int l=0;
 	int ln = width >> 1;
-
-	for(l=0; l<ln; l++)
+	
+	for(l=0; l<ln; l++) 
 	{	/*iterate every 4 bytes*/
-
+	
 		int u  = pyuv[1] - 128;
 		int v  = pyuv[3] - 128;
-
+		
 		int ri = (                       + FIX1P8(1.402)   * v) >> 8;
 		int gi = ( - FIX1P8(0.34414) * u - FIX1P8(0.71414) * v) >> 8;
 		int bi = ( + FIX1P8(1.772)   * u                      ) >> 8;
@@ -1471,12 +1470,12 @@ void yuyv_to_rgb24_line (uint8_t *pyuv, uint8_t *prgb, int width)
 		*prgb++ = clip(y0 + ri);
 		*prgb++ = clip(y0 + gi);
 		*prgb++ = clip(y0 + bi);
-
+		
 		int y1 = pyuv[2];
 		*prgb++ = clip(y1 + ri);
 		*prgb++ = clip(y1 + gi);
 		*prgb++ = clip(y1 + bi);
-
+		
 		pyuv += 4;
 	}
 }
@@ -1485,9 +1484,9 @@ void yuyv_to_rgb24_line (uint8_t *pyuv, uint8_t *prgb, int width)
 void yuyv_to_rgb24 (uint8_t *pyuv, int pyuvstride, uint8_t *prgb,int prgbstride, int width, int height)
 {
 	int h=0;
-	for(h=0;h<height;h++)
-	{
-		yuyv_to_rgb24_line (pyuv,prgb,width);
+	for(h=0;h<height;h++) 
+	{	
+		yuyv_to_rgb24_line (pyuv,prgb,width);	
 		pyuv += pyuvstride;
 		prgb += prgbstride;
 	}
@@ -1497,13 +1496,13 @@ void yuyv_to_rgb32_line (uint8_t *pyuv, uint8_t *prgb, int width)
 {
 	int l=0;
 	int ln = width >> 1;
-
-	for(l=0; l<ln; l++)
+	
+	for(l=0; l<ln; l++) 
 	{	/*iterate every 4 bytes*/
-
+	
 		int u  = pyuv[1] - 128;
 		int v  = pyuv[3] - 128;
-
+		
 		int ri = (                       + FIX1P8(1.402)   * v) >> 8;
 		int gi = ( - FIX1P8(0.34414) * u - FIX1P8(0.71414) * v) >> 8;
 		int bi = ( + FIX1P8(1.772)   * u                      ) >> 8;
@@ -1520,13 +1519,13 @@ void yuyv_to_rgb32_line (uint8_t *pyuv, uint8_t *prgb, int width)
 		*prgb++ = clip(y0 + gi);
 		*prgb++ = clip(y0 + bi);
 		prgb++;
-
+		
 		int y1 = pyuv[2];
 		*prgb++ = clip(y1 + ri);
 		*prgb++ = clip(y1 + gi);
 		*prgb++ = clip(y1 + bi);
 		prgb++;
-
+		
 		pyuv += 4;
 	}
 }
@@ -1535,9 +1534,9 @@ void yuyv_to_rgb32_line (uint8_t *pyuv, uint8_t *prgb, int width)
 void yuyv_to_rgb32 (uint8_t *pyuv, int pyuvstride, uint8_t *prgb,int prgbstride, int width, int height)
 {
 	int h=0;
-	for(h=0;h<height;h++)
-	{
-		yuyv_to_rgb32_line (pyuv,prgb,width);
+	for(h=0;h<height;h++) 
+	{	
+		yuyv_to_rgb32_line (pyuv,prgb,width);		
 		pyuv += pyuvstride;
 		prgb += prgbstride;
 	}
@@ -1547,11 +1546,11 @@ void yuyv_to_bgr24_line (uint8_t *pyuv, uint8_t *pbgr, int width)
 {
 	int l=0;
 	int ln = width >> 1;
-	for(l=0;l<ln;l++)
+	for(l=0;l<ln;l++) 
 	{	/*iterate every 4 bytes*/
 		int u  = pyuv[1] - 128;
 		int v  = pyuv[3] - 128;
-
+		
 		int ri = (                       + FIX1P8(1.402)   * v) >> 8;
 		int gi = ( - FIX1P8(0.34414) * u - FIX1P8(0.71414) * v) >> 8;
 		int bi = ( + FIX1P8(1.772)   * u                      ) >> 8;
@@ -1568,13 +1567,13 @@ void yuyv_to_bgr24_line (uint8_t *pyuv, uint8_t *pbgr, int width)
 		*pbgr++ = clip(y0 + gi);
 		*pbgr++ = clip(y0 + bi);
 		pbgr++;
-
+		
 		int y1 = pyuv[2];
 		*pbgr++ = clip(y1 + ri);
 		*pbgr++ = clip(y1 + gi);
 		*pbgr++ = clip(y1 + bi);
 		pbgr++;
-
+		
 		pyuv += 4;
 	}
 }
@@ -1584,9 +1583,9 @@ void yuyv_to_bgr24_line (uint8_t *pyuv, uint8_t *pbgr, int width)
 void yuyv_to_bgr24 (uint8_t *pyuv, int pyuvstride, uint8_t *pbgr, int pbgrstride, int width, int height)
 {
 	int h=0;
-	for(h=0;h<height;h++)
-	{
-		yuyv_to_bgr24_line (pyuv,pbgr,width);
+	for(h=0;h<height;h++) 
+	{	
+		yuyv_to_bgr24_line (pyuv,pbgr,width);		
 		pyuv += pyuvstride;
 		pbgr += pbgrstride;
 	}
@@ -1596,11 +1595,11 @@ void yuyv_to_bgr32_line (uint8_t *pyuv, uint8_t *pbgr, int width)
 {
 	int l=0;
 	int ln = width >> 1;
-	for(l=0;l<ln;l++)
+	for(l=0;l<ln;l++) 
 	{	/*iterate every 4 bytes*/
 		int u  = pyuv[1] - 128;
 		int v  = pyuv[3] - 128;
-
+		
 		int ri = (                       + FIX1P8(1.402)   * v) >> 8;
 		int gi = ( - FIX1P8(0.34414) * u - FIX1P8(0.71414) * v) >> 8;
 		int bi = ( + FIX1P8(1.772)   * u                      ) >> 8;
@@ -1617,13 +1616,13 @@ void yuyv_to_bgr32_line (uint8_t *pyuv, uint8_t *pbgr, int width)
 		*pbgr++ = clip(y0 + gi);
 		*pbgr++ = clip(y0 + bi);
 		pbgr++;
-
+		
 		int y1 = pyuv[2];
 		*pbgr++ = clip(y1 + ri);
 		*pbgr++ = clip(y1 + gi);
 		*pbgr++ = clip(y1 + bi);
 		pbgr++;
-
+		
 		pyuv += 4;
 	}
 }
@@ -1633,9 +1632,9 @@ void yuyv_to_bgr32_line (uint8_t *pyuv, uint8_t *pbgr, int width)
 void yuyv_to_bgr32 (uint8_t *pyuv, int pyuvstride, uint8_t *pbgr, int pbgrstride, int width, int height)
 {
 	int h=0;
-	for(h=0;h<height;h++)
-	{
-		yuyv_to_bgr32_line (pyuv,pbgr,width);
+	for(h=0;h<height;h++) 
+	{	
+		yuyv_to_bgr32_line (pyuv,pbgr,width);		
 		pyuv += pyuvstride;
 		pbgr += pbgrstride;
 	}
@@ -1659,7 +1658,7 @@ typedef memory_destination_mgr* mem_dest_ptr;
 METHODDEF(void) init_destination (j_compress_ptr cinfo)
 {
 	mem_dest_ptr dest = (mem_dest_ptr)cinfo->dest;
-
+	
 	dest->pub.next_output_byte 	= dest->buffer; 	/* set destination buffer */
 	dest->pub.free_in_buffer 	= dest->bufsize; 	/* input buffer size */
 	dest->datasize = 0; 							/* reset output size */
@@ -1669,7 +1668,7 @@ METHODDEF(void) init_destination (j_compress_ptr cinfo)
 METHODDEF(boolean) empty_output_buffer (j_compress_ptr cinfo)
 {
 	mem_dest_ptr dest = (mem_dest_ptr)cinfo->dest;
-
+	
 	// Reinit to the start. Better than crashing
 	dest->pub.next_output_byte = (JOCTET*)dest->buffer;
 	dest->pub.free_in_buffer   = dest->bufsize;
@@ -1706,7 +1705,7 @@ static GLOBAL(void) jpeg_memory_dest (j_compress_ptr cinfo,void* buf,int sz)
 	dest->bufsize = sz;
 	dest->buffer = (JOCTET*)buf;
 	dest->datasize = 0;
-
+	
 	/* set method callbacks */
 	dest->pub.init_destination 		= init_destination;
 	dest->pub.empty_output_buffer 	= empty_output_buffer;
@@ -1722,26 +1721,26 @@ int yuyv_to_jpeg(uint8_t* src, uint8_t* dst, int maxsize, int width, int height,
 {
 	// Round height to a multiple of 16:
 	height &= (-16);
-
+	
 	// Round width to a multiple of 16
 	width &= (-16);
-
+	
 	// Calculate deltaStride
 	int dstride = stride - (width << 1);
 
 	int i, j;
 
 	JSAMPROW y[16],cb[8],cr[8];
-	JSAMPARRAY data[3];
+	JSAMPARRAY data[3]; 
 
 	struct jpeg_compress_struct cinfo;
 	struct jpeg_error_mgr jerr;
 
-	// Allocate memory for line buffers
+	// Allocate memory for line buffers 
 	y[0] = (JSAMPROW) malloc(sizeof(JSAMPLE) * width * 16);
 	cb[0] = (JSAMPROW) malloc(sizeof(JSAMPLE) * (width >> 1) * 8);
 	cr[0] = (JSAMPROW) malloc(sizeof(JSAMPLE) * (width >> 1) * 8);
-
+	
 	for (i = 1; i< 16; i++) {
 		y[i]  =  y[0] + (i*(sizeof(JSAMPLE) * width));
 	}
@@ -1749,13 +1748,13 @@ int yuyv_to_jpeg(uint8_t* src, uint8_t* dst, int maxsize, int width, int height,
 		cb[i] = cb[0] + (i*(sizeof(JSAMPLE) * (width >> 1)));
 		cr[i] = cr[0] + (i*(sizeof(JSAMPLE) * (width >> 1)));
 	}
-
+	
 	data[0] = y;
 	data[1] = cb;
 	data[2] = cr;
 
-	cinfo.err = jpeg_std_error(&jerr);  // errors get written to stderr
-
+	cinfo.err = jpeg_std_error(&jerr);  // errors get written to stderr 
+	
 	jpeg_create_compress(&cinfo);
 	cinfo.image_width = width;
 	cinfo.image_height = height;
@@ -1776,18 +1775,18 @@ int yuyv_to_jpeg(uint8_t* src, uint8_t* dst, int maxsize, int width, int height,
 	cinfo.dct_method = JDCT_FASTEST;
 
 	jpeg_memory_dest(&cinfo,dst,maxsize);	// data written to mem
-
+	
 	jpeg_start_compress (&cinfo, TRUE);
 
 	uint8_t* yuyv = src;
-
+	
 	for (j=0; j<height; j+=16) {
-
+	
 		JSAMPROW pcb = cb[0];
 		JSAMPROW pcr = cr[0];
 		JSAMPROW py  = y[0];
 		for (i=0; i<8; i++) {
-
+			
 			int x;
 			for (x = 0; x < (width>>1); x++) {
 				*py++ = *yuyv++;		// Y0
@@ -1798,7 +1797,7 @@ int yuyv_to_jpeg(uint8_t* src, uint8_t* dst, int maxsize, int width, int height,
 				yuyv++;
 			}
 			yuyv += dstride;
-			for (x = 0; x < (width>>1); x++) {
+			for (x = 0; x < (width>>1); x++) {	
 				*py++ = *yuyv++;		// Y2
 				yuyv++;
 				*py++ = *yuyv++;		// Y3
@@ -1811,16 +1810,16 @@ int yuyv_to_jpeg(uint8_t* src, uint8_t* dst, int maxsize, int width, int height,
 
 	jpeg_finish_compress(&cinfo);
 
-	// Release memory for line buffers
+	// Release memory for line buffers 
 	free(y[0]);
 	free(cb[0]);
 	free(cr[0]);
 
 	// Create a buffer with the compressed data
     int fileSize = ((mem_dest_ptr)cinfo.dest)->datasize;
-
+	
 	// Destroy compressor context
 	jpeg_destroy_compress(&cinfo);
-
+	
 	return fileSize;
-}
+} 
