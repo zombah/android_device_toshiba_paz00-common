@@ -41,15 +41,17 @@ BOARD_CUSTOM_RECOVERY_KEYMAPPING 	:= ../../device/toshiba/paz00-common/recovery/
 BOARD_WPA_SUPPLICANT_DRIVER 		:= NL80211
 WPA_SUPPLICANT_VERSION 			:= VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB 	:= lib_driver_cmd_wl12xx
+#BOARD_WPA_SUPPLICANT_PRIVATE_LIB       := lib_driver_cmd_bcmdhd
 BOARD_HOSTAPD_DRIVER 			:= NL80211
 BOARD_HOSTAPD_PRIVATE_LIB 		:= lib_driver_cmd_wl12xx
+#BOARD_HOSTAPD_PRIVATE_LIB              := lib_driver_cmd_bcmdhd
 BOARD_WLAN_DEVICE 			:= wlan0
 WIFI_DRIVER_MODULE_NAME                 := rt2800usb
 WIFI_DRIVER_MODULE_PATH                 := /system/lib/modules/rt2800usb.ko
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH 			:= true
-BOARD_HAVE_BLUETOOTH_BCM 		:= true
+#BOARD_HAVE_BLUETOOTH_BCM 		:= true
 #BOARD_HAVE_BLUETOOTH_CSR 		:= true
 
 BOARD_KERNEL_BASE 			:= 0x10000000
@@ -112,3 +114,4 @@ BOARD_USES_KBDSENSOR 			:= true
 BOARD_USES_KBDSENSOR_ROTKEY2		:= true
 
 BOARD_USE_SCREENCAP 			:= true
+BOARD_USES_SECURE_SERVICES 		:= true
