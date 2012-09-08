@@ -8,6 +8,7 @@ DEBUG_LOG=/data/wwlan_select.log
 #   0bdb        1914      F3307
 #   0bdb        190d      F5521gw
 #   12d1        1001      HUAWEI E220
+#   0421        0208      Nokia 5130 ExpressMusic
 
 VPList=( \
 05c6 6000 X8133/WM700g/WU500/EA100 \
@@ -15,11 +16,12 @@ VPList=( \
 0bdb 1914 F3307 \
 0bdb 190d F5521gw \
 12d1 1001 E220 \
+0421 0208 Nokia-5130EM \
 )
 
 VPListNum=${#VPList[*]}
 
-IndexTotal=$((VPListNum / 4 - 1))
+IndexTotal=$((VPListNum / 3))
 
 for Vendor in `ls /sys/bus/usb/devices/*/idVendor /sys/bus/usb/devices/*/*/idVendor 2> /dev/null`
 do
@@ -29,13 +31,18 @@ do
 	while [ "$index" -lt "$IndexTotal" ]
 	do
 		case "$idVendortemp" in
-		0bdb)
+		0bdb) # Ericsson
 			idVendor=$idVendortemp
 			break 2
 			;;
-		${VPList[$((index * 4))]})
+		0421) # Nokia
+			idVendor=$idVendortemp
+			idProduct=$idProducttemp
+			break 2
+			;;
+		${VPList[$((index * 3))]})
 			case "$idProducttemp" in
-			${VPList[$((index * 4 + 1))]})
+			${VPList[$((index * 3 + 1))]})
 				idVendor=$idVendortemp
 				idProduct=$idProducttemp
 				break 2
@@ -51,10 +58,8 @@ do
 	done
 done
 
-echo "wwlan idVendor ----> $idVendor" >> $DEBUG_LOG
-echo "wwlan idProduct ----> $idProduct" >> $DEBUG_LOG
-echo "wwlan wakeuppath ----> ${Vendor/idVendor/}power/wakeup" >> $DEBUG_LOG
-echo "wwlan controlpath ----> ${Vendor/idVendor/}power/control" >> $DEBUG_LOG
+echo "wwlan modem ---> idVendor:$idVendor, idProduct:$idProduct" >> $DEBUG_LOG
+echo "wwlan power path ----> ${Vendor/idVendor/}power" >> $DEBUG_LOG
 
 case "$idVendor" in
 05c6)
@@ -105,6 +110,17 @@ case "$idVendor" in
 	echo enabled > ${Vendor/idVendor/}power/wakeup
 	echo auto > ${Vendor/idVendor/}power/control
 	;;
+0421)
+	echo "wwlan Nokia modem" >> $DEBUG_LOG
+	#setprop rild.libpath /system/lib/libreference-ril.so
+	#setprop rild.libpath /system/lib/libmbm-ril.so
+	setprop rild.libpath /system/lib/libhuaweigeneric-ril.so
+	setprop rild.libargs "-d /dev/ttyACM0"
+	setprop ctl.stop ril-daemon
+	setprop ctl.start ril-daemon
+	echo auto > ${Vendor/idVendor/}power/control
+	;;
+
 *)
 	echo "unknown idVendor" >> $DEBUG_LOG
 	setprop ctl.stop ril-daemon
