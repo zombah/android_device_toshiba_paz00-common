@@ -18,6 +18,7 @@ TARGET_CPU_SMP 				:= true
 TARGET_NO_BOOTLOADER 			:= true
 TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
 
+# Tegra2 specific tweaks
 ARCH_ARM_HAVE_TLS_REGISTER 		:= true
 
 # Kernel
@@ -34,8 +35,10 @@ TARGET_NO_RADIOIMAGE 			:= true
 # Use Old Style USB Mounting Untill we get kernel source
 BOARD_USE_USB_MASS_STORAGE_SWITCH 	:= true
 
+# CWM Recovery settings
 # custom recovery ui
 BOARD_CUSTOM_RECOVERY_KEYMAPPING 	:= ../../device/toshiba/paz00-common/recovery/recovery_ui.c
+BOARD_HAS_NO_SELECT_BUTTON              := true
 
 # Wifi related defines
 BOARD_WPA_SUPPLICANT_DRIVER 		:= NL80211
@@ -78,7 +81,7 @@ BOARD_SYSTEMIMAGE_PARTITION_SIZE 	:= 314572800
 BOARD_USERDATAIMAGE_PARTITION_SIZE 	:= 1294991360
 BOARD_FLASH_BLOCK_SIZE 			:= 131072
 
-# Disable spase in image creation, otherwise image not mountble
+# Disable spase in image creation, otherwise image not mountble and need to be processed with simg2img
 TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
 
 # Setting this to avoid boot locks on the system from using the "misc" partition.
@@ -96,11 +99,9 @@ BOARD_CACHE_DEVICE 			:= /dev/block/mmcblk0p4
 BOARD_CACHE_FILESYSTEM 			:= ext4
 BOARD_SYSTEM_DEVICE 			:= /dev/block/mmcblk0p3
 BOARD_SYSTEM_FILESYSTEM 		:= ext4
-BOARD_HAS_NO_SELECT_BUTTON 		:= true
 
 # Vold settings
-BOARD_VOLD_MAX_PARTITIONS 		:= 11
-
+BOARD_VOLD_MAX_PARTITIONS 		:= 16
 BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
 
 # Use nicer font rendering
@@ -110,8 +111,9 @@ BOARD_USE_SKIA_LCDTEXT 			:= true
 BOARD_SKIP_ANDROID_DOC_BUILD		:= true
 
 # kbd libsensor from android-x86
-BOARD_USES_KBDSENSOR 			:= true
-BOARD_USES_KBDSENSOR_ROTKEY2		:= true
+BOARD_USES_KBDSENSOR 			:= false
+BOARD_USES_KBDSENSOR_ROTKEY2		:= false
 
+# Add screencap tool for making screenshots from console
 BOARD_USE_SCREENCAP 			:= true
 BOARD_USES_SECURE_SERVICES 		:= true
