@@ -36,9 +36,15 @@ TARGET_NO_RADIOIMAGE 			:= true
 BOARD_USE_USB_MASS_STORAGE_SWITCH 	:= true
 
 # CWM Recovery settings
-# custom recovery ui
-BOARD_CUSTOM_RECOVERY_KEYMAPPING 	:= ../../device/toshiba/paz00-common/recovery/recovery_ui.c
+# custom recovery ui, seems to be obsolete
+#BOARD_CUSTOM_RECOVERY_KEYMAPPING 	:= ../../device/toshiba/paz00-common/recovery/recovery_ui.c
+BOARD_UMS_LUNFILE 			:= "/sys/class/android_usb/android0/f_mass_storage/lun/file"
 BOARD_HAS_NO_SELECT_BUTTON              := true
+# Large fonts
+#BOARD_USE_CUSTOM_RECOVERY_FONT 		:= \"roboto_15x24.h\"
+BOARD_USES_MMCUTILS 			:= true
+BOARD_HAS_LARGE_FILESYSTEM              := true
+TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
 
 # Wifi related defines
 BOARD_WPA_SUPPLICANT_DRIVER 		:= NL80211
@@ -51,10 +57,11 @@ BOARD_HOSTAPD_PRIVATE_LIB 		:= lib_driver_cmd_wl12xx
 BOARD_WLAN_DEVICE 			:= wlan0
 WIFI_DRIVER_MODULE_NAME                 := rt2800usb
 WIFI_DRIVER_MODULE_PATH                 := /system/lib/modules/rt2800usb.ko
+WIFI_DRIVER_MODULE_ARG			:= "nohwcrypt=1"
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH 			:= true
-#BOARD_HAVE_BLUETOOTH_BCM 		:= true
+BOARD_HAVE_BLUETOOTH_BCM 		:= true
 #BOARD_HAVE_BLUETOOTH_CSR 		:= true
 
 BOARD_KERNEL_BASE 			:= 0x10000000
@@ -73,7 +80,6 @@ BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
 # Partitions 
-BOARD_HAS_LARGE_FILESYSTEM 		:= true
 TARGET_USERIMAGES_USE_EXT4		:= true
 BOARD_BOOTIMAGE_PARTITION_SIZE 		:= 8388608
 BOARD_RECOVERYIMAGE_PARTITION_SIZE 	:= 5242880
@@ -102,6 +108,7 @@ BOARD_SYSTEM_FILESYSTEM 		:= ext4
 
 # Vold settings
 BOARD_VOLD_MAX_PARTITIONS 		:= 16
+TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/lun%d/file"
 BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
 
 # Use nicer font rendering
@@ -117,3 +124,6 @@ BOARD_USES_KBDSENSOR_ROTKEY2		:= false
 # Add screencap tool for making screenshots from console
 BOARD_USE_SCREENCAP 			:= true
 BOARD_USES_SECURE_SERVICES 		:= true
+
+# Use a smaller subset of system fonts to keep image size lower
+#SMALLER_FONT_FOOTPRINT 			:= true
