@@ -22,6 +22,7 @@ on fs
     mount ext4 /dev/block/mmcblk0p6 /data wait noatime
     setprop ro.crypto.tmpfs_options size=128m,mode=0771,uid=1000,gid=1000
     mkdir /flexrom 0770 root system
+
 # Basic modules loading below
 # install wifi modules
     insmod /system/lib/modules/cfg80211.ko
@@ -178,12 +179,38 @@ service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL
     disabled
     oneshot
 
+service dhcpcd_p2p /system/bin/dhcpcd -aABKL
+    class main
+    disabled
+    oneshot
+
 # bluetooth
 service dhcpcd_bnep0 /system/bin/dhcpcd -ABKL
+    class main
+    disabled
+    oneshot
+
+service dhcpcd_eth0 /system/bin/dhcpcd -ABKL -f/system/etc/dhcpcd/dhcpcd.conf
+    class main
     disabled
     oneshot
 
 service iprenew_wlan0 /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service iprenew_p2p /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service iprenew_eth0 /system/bin/dhcpcd -n
+    disabled
+    oneshot
+
+service iprenew_bnep0 /system/bin/dhcpcd -n
+    class main
     disabled
     oneshot
 
@@ -200,21 +227,21 @@ service iprenew_wlan0 /system/bin/dhcpcd -n
 #    group root
 
 #Prepare TF service
-#service tf_daemon /system/bin/tf_daemon -storageDir /data/tf
-#    disabled
-#    class main
-#    user root
-#    group shell
-#    oneshot
+service tf_daemon /system/bin/tf_daemon -storageDir /data/tf
+    disabled
+    class main
+    user root
+    group shell
+    oneshot
 
 service hwprops /sbin/hwprops
     disabled
     oneshot
 
 #Create data directory and start service
-#on property:tf.enable=y
-#    mkdir /data/tf
-#    start tf_daemon
+on property:tf.enable=y
+    mkdir /data/tf
+    start tf_daemon
 
 # Postboot service
 service picasso_postboot /system/bin/sh /picasso_postboot.sh
@@ -272,4 +299,3 @@ on device-removed-/dev/ttyUSB3
                                                                                                    
 on property:init.svc.bootanim=stopped                                                              
     start wwlanselect
-
