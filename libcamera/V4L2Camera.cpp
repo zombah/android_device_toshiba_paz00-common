@@ -32,9 +32,9 @@ extern "C" {
 //#define DEBUG_FRAME 0
 
 #ifdef DEBUG_FRAME
-#define LOG_FRAME LOGD
+#define LOG_FRAME ALOGD
 #else
-#define LOG_FRAME LOGV
+#define LOG_FRAME ALOGV
 #endif
 
 namespace android {
@@ -61,23 +61,23 @@ int V4L2Camera::Open (const char *device)
     memset(videoIn, 0, sizeof (struct vdIn));
 
     if ((fd = open(device, O_RDWR)) == -1) {
-        LOGE("ERROR opening V4L interface: %s", strerror(errno));
+        ALOGE("ERROR opening V4L interface: %s", strerror(errno));
         return -1;
     }
 
     ret = ioctl (fd, VIDIOC_QUERYCAP, &videoIn->cap);
     if (ret < 0) {
-        LOGE("Error opening device: unable to query device.");
+        ALOGE("Error opening device: unable to query device.");
         return -1;
     }
 
     if ((videoIn->cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0) {
-        LOGE("Error opening device: video capture not supported.");
+        ALOGE("Error opening device: video capture not supported.");
         return -1;
     }
 
     if (!(videoIn->cap.capabilities & V4L2_CAP_STREAMING)) {
-        LOGE("Capture device does not support streaming i/o");
+        ALOGE("Capture device does not support streaming i/o");
         return -1;
     }
 	
@@ -107,7 +107,7 @@ static int my_abs(int x)
 
 int V4L2Camera::Init(int width, int height, int fps)
 {
-	LOGD("V4L2Camera::Init");
+	ALOGD("V4L2Camera::Init");
 	
 	/* Initialize the capture to the specified width and height */
 	static const struct {
@@ -146,7 +146,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 
 	// If no formats, break here
 	if (m_AllFmts.isEmpty()) {
-		LOGE("No video formats available");
+		ALOGE("No video formats available");
 		return -1;
 	}
 
@@ -166,7 +166,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 			int difArea = sd.getArea() - area;
 			int difFps = my_abs(sd.getFps() - fps);
 	
-			LOGD("Trying format: (%d x %d), Fps: %d [difArea:%d, difFps:%d, cDifArea:%d, cDifFps:%d]",sd.getWidth(),sd.getHeight(),sd.getFps(), difArea, difFps, closestDArea, closestDFps);	
+			ALOGD("Trying format: (%d x %d), Fps: %d [difArea:%d, difFps:%d, cDifArea:%d, cDifFps:%d]",sd.getWidth(),sd.getHeight(),sd.getFps(), difArea, difFps, closestDArea, closestDFps);	
 			if (closestDArea < 0 || 
 				difArea < closestDArea ||
 				(difArea == closestDArea && difFps < closestDFps)) {
@@ -182,11 +182,11 @@ int V4L2Camera::Init(int width, int height, int fps)
 	}
 	
 	if (closestDArea == -1) {
-		LOGE("Size not available: (%d x %d)",width,height);
+		ALOGE("Size not available: (%d x %d)",width,height);
 		return -1;
 	}
 
-	LOGD("Selected format: (%d x %d), Fps: %d",closest.getWidth(),closest.getHeight(),closest.getFps());
+	ALOGD("Selected format: (%d x %d), Fps: %d",closest.getWidth(),closest.getHeight(),closest.getFps());
 	
 	// Check if we will have to crop the captured image
 	bool crop = width != closest.getWidth() || height != closest.getHeight();
@@ -211,7 +211,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 		}
 	}
     if (ret < 0) {
-        LOGE("Open: VIDIOC_TRY_FMT Failed: %s", strerror(errno));
+        ALOGE("Open: VIDIOC_TRY_FMT Failed: %s", strerror(errno));
         return ret;
     }
 
@@ -223,7 +223,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 	videoIn->format.fmt.pix.pixelformat = pixFmtsOrder[i].fmt;
 	ret = ioctl(fd, VIDIOC_S_FMT, &videoIn->format);
     if (ret < 0) {
-        LOGE("Open: VIDIOC_S_FMT Failed: %s", strerror(errno));
+        ALOGE("Open: VIDIOC_S_FMT Failed: %s", strerror(errno));
         return ret;
     }
 
@@ -233,7 +233,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 	videoIn->format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	ret = ioctl(fd, VIDIOC_G_FMT, &videoIn->format);
     if (ret < 0) {
-        LOGE("Open: VIDIOC_G_FMT Failed: %s", strerror(errno));
+        ALOGE("Open: VIDIOC_G_FMT Failed: %s", strerror(errno));
         return ret;
     }
 	
@@ -271,7 +271,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 	videoIn->capCropOffset = (startX * videoIn->capBytesPerPixel) +
 			(videoIn->format.fmt.pix.bytesperline * startY);	
 	
-	LOGI("Cropping from origin: %dx%d - size: %dx%d  (offset:%d)", 
+	ALOGI("Cropping from origin: %dx%d - size: %dx%d  (offset:%d)", 
 		startX,startY,
 		videoIn->outWidth,videoIn->outHeight,
 		videoIn->capCropOffset);
@@ -285,16 +285,16 @@ int V4L2Camera::Init(int width, int height, int fps)
 	/* Set the framerate. If it fails, it wont be fatal */
 	if (ioctl(fd,VIDIOC_S_PARM,&videoIn->params) < 0) 
 	{
-		LOGE("VIDIOC_S_PARM error: Unable to set %d fps", closest.getFps());
+		ALOGE("VIDIOC_S_PARM error: Unable to set %d fps", closest.getFps());
 	} 
 	
 	/* Gets video device defined frame rate (not real - consider it a maximum value) */
 	if (ioctl(fd,VIDIOC_G_PARM,&videoIn->params) < 0) 
 	{
-		LOGE("VIDIOC_G_PARM - Unable to get timeperframe");
+		ALOGE("VIDIOC_G_PARM - Unable to get timeperframe");
 	} 
 	
-	LOGI("Actual format: (%d x %d), Fps: %d, pixfmt: '%c%c%c%c', bytesperline: %d",
+	ALOGI("Actual format: (%d x %d), Fps: %d, pixfmt: '%c%c%c%c', bytesperline: %d",
 		videoIn->format.fmt.pix.width,
 		videoIn->format.fmt.pix.height,
 		videoIn->params.parm.capture.timeperframe.denominator,
@@ -315,33 +315,33 @@ int V4L2Camera::Init(int width, int height, int fps)
 		/* Try to set it */
 		if(ioctl(fd,VIDIOC_S_JPEGCOMP, &videoIn->jpegcomp) >= 0)
 		{
-			LOGE("VIDIOC_S_COMP:");
+			ALOGE("VIDIOC_S_COMP:");
 			if(errno == EINVAL)
 			{
 				videoIn->jpegcomp.quality = -1; //not supported
-				LOGE("   compression control not supported\n");
+				ALOGE("   compression control not supported\n");
 			}
 		}
 
 		/* gets video stream jpeg compression parameters */
 		if(ioctl(fd,VIDIOC_G_JPEGCOMP, &videoIn->jpegcomp) >= 0)
 		{
-			LOGD("VIDIOC_G_COMP:\n");
-			LOGD("    quality:      %i\n", videoIn->jpegcomp.quality);
-			LOGD("    APPn:         %i\n", videoIn->jpegcomp.APPn);
-			LOGD("    APP_len:      %i\n", videoIn->jpegcomp.APP_len);
-			LOGD("    APP_data:     %s\n", videoIn->jpegcomp.APP_data);
-			LOGD("    COM_len:      %i\n", videoIn->jpegcomp.COM_len);
-			LOGD("    COM_data:     %s\n", videoIn->jpegcomp.COM_data);
-			LOGD("    jpeg_markers: 0x%x\n", videoIn->jpegcomp.jpeg_markers);
+			ALOGD("VIDIOC_G_COMP:\n");
+			ALOGD("    quality:      %i\n", videoIn->jpegcomp.quality);
+			ALOGD("    APPn:         %i\n", videoIn->jpegcomp.APPn);
+			ALOGD("    APP_len:      %i\n", videoIn->jpegcomp.APP_len);
+			ALOGD("    APP_data:     %s\n", videoIn->jpegcomp.APP_data);
+			ALOGD("    COM_len:      %i\n", videoIn->jpegcomp.COM_len);
+			ALOGD("    COM_data:     %s\n", videoIn->jpegcomp.COM_data);
+			ALOGD("    jpeg_markers: 0x%x\n", videoIn->jpegcomp.jpeg_markers);
 		}
 		else
 		{
-			LOGE("VIDIOC_G_COMP:");
+			ALOGE("VIDIOC_G_COMP:");
 			if(errno == EINVAL)
 			{
 				videoIn->jpegcomp.quality = -1; //not supported
-				LOGE("   compression control not supported\n");
+				ALOGE("   compression control not supported\n");
 			}
 		}
 	}
@@ -354,7 +354,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 
     ret = ioctl(fd, VIDIOC_REQBUFS, &videoIn->rb);
     if (ret < 0) {
-        LOGE("Init: VIDIOC_REQBUFS failed: %s", strerror(errno));
+        ALOGE("Init: VIDIOC_REQBUFS failed: %s", strerror(errno));
         return ret;
     }
 
@@ -367,7 +367,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 
         ret = ioctl (fd, VIDIOC_QUERYBUF, &videoIn->buf);
         if (ret < 0) {
-            LOGE("Init: Unable to query buffer (%s)", strerror(errno));
+            ALOGE("Init: Unable to query buffer (%s)", strerror(errno));
             return ret;
         }
 
@@ -379,13 +379,13 @@ int V4L2Camera::Init(int width, int height, int fps)
                                 videoIn->buf.m.offset);
 
         if (videoIn->mem[i] == MAP_FAILED) {
-            LOGE("Init: Unable to map buffer (%s)", strerror(errno));
+            ALOGE("Init: Unable to map buffer (%s)", strerror(errno));
             return -1;
         }
 
         ret = ioctl(fd, VIDIOC_QBUF, &videoIn->buf);
         if (ret < 0) {
-            LOGE("Init: VIDIOC_QBUF Failed");
+            ALOGE("Init: VIDIOC_QBUF Failed");
             return -1;
         }
 
@@ -437,7 +437,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 			videoIn->tmpBuffer = (uint8_t*)calloc(1, tmpbuf_size);
 			if (!videoIn->tmpBuffer) 
 			{
-				LOGE("couldn't calloc %lu bytes of memory for frame buffer\n",
+				ALOGE("couldn't calloc %lu bytes of memory for frame buffer\n",
 					(unsigned long) tmpbuf_size);
 				return -ENOMEM;
 			} 
@@ -450,7 +450,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 			break;
 			
 		default:
-			LOGE("Should never arrive (1)- exit fatal !!\n");
+			ALOGE("Should never arrive (1)- exit fatal !!\n");
 			return -1;
 	} 	
 
@@ -471,7 +471,7 @@ void V4L2Camera::Uninit ()
     for (int i = 0; i < DQcount-1; i++) {
         ret = ioctl(fd, VIDIOC_DQBUF, &videoIn->buf);
         if (ret < 0)
-            LOGE("Uninit: VIDIOC_DQBUF Failed");
+            ALOGE("Uninit: VIDIOC_DQBUF Failed");
     }
     nQueued = 0;
     nDequeued = 0;
@@ -480,7 +480,7 @@ void V4L2Camera::Uninit ()
     for (int i = 0; i < NB_BUFFER; i++)
 		if (videoIn->mem[i] != NULL) {
 			if (munmap(videoIn->mem[i], videoIn->buf.length) < 0)
-				LOGE("Uninit: Unmap failed");
+				ALOGE("Uninit: Unmap failed");
 			videoIn->mem[i] = NULL;
 		}
 		
@@ -500,7 +500,7 @@ int V4L2Camera::StartStreaming ()
 
         ret = ioctl (fd, VIDIOC_STREAMON, &type);
         if (ret < 0) {
-            LOGE("StartStreaming: Unable to start capture: %s", strerror(errno));
+            ALOGE("StartStreaming: Unable to start capture: %s", strerror(errno));
             return ret;
         }
 
@@ -520,7 +520,7 @@ int V4L2Camera::StopStreaming ()
 
         ret = ioctl (fd, VIDIOC_STREAMOFF, &type);
         if (ret < 0) {
-            LOGE("StopStreaming: Unable to stop capture: %s", strerror(errno));
+            ALOGE("StopStreaming: Unable to stop capture: %s", strerror(errno));
             return ret;
         }
 
@@ -555,7 +555,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
     videoIn->buf.memory = V4L2_MEMORY_MMAP;
 	ret = ioctl(fd, VIDIOC_DQBUF, &videoIn->buf);
     if (ret < 0) {
-        LOGE("GrabPreviewFrame: VIDIOC_DQBUF Failed");
+        ALOGE("GrabPreviewFrame: VIDIOC_DQBUF Failed");
         return;
     }
 
@@ -572,7 +572,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 	/* Avoid crashing! - Make sure there is enough room in the output buffer! */
 	if (maxSize < videoIn->outFrameSize) {
 	
-		LOGE("V4L2Camera::GrabRawFrame: Insufficient space in output buffer: Required: %d, Got %d - DROPPING FRAME",videoIn->outFrameSize,maxSize);
+		ALOGE("V4L2Camera::GrabRawFrame: Insufficient space in output buffer: Required: %d, Got %d - DROPPING FRAME",videoIn->outFrameSize,maxSize);
 		
 	} else {
 	
@@ -583,13 +583,13 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 				if(videoIn->buf.bytesused <= HEADERFRAME1) 
 				{
 					// Prevent crash on empty image
-					LOGE("Ignoring empty buffer ...\n");
+					ALOGE("Ignoring empty buffer ...\n");
 					break;
 				}
 
 				if (jpeg_decode((uint8_t*)frameBuffer, strideOut, src, videoIn->outWidth, videoIn->outHeight) < 0) 
 				{
-					LOGE("jpeg decode errors\n");
+					ALOGE("jpeg decode errors\n");
 					break;
 				}
 				break;
@@ -708,7 +708,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 				break;
 			
 			default:
-				LOGE("error grabbing: unknown format: %i\n", videoIn->format.fmt.pix.pixelformat);
+				ALOGE("error grabbing: unknown format: %i\n", videoIn->format.fmt.pix.pixelformat);
 				break;
 		}
 		
@@ -718,7 +718,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 	/* And Queue the buffer again */
     ret = ioctl(fd, VIDIOC_QBUF, &videoIn->buf);
     if (ret < 0) {
-        LOGE("GrabPreviewFrame: VIDIOC_QBUF Failed");
+        ALOGE("GrabPreviewFrame: VIDIOC_QBUF Failed");
         return;
     }
 
@@ -737,7 +737,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
  * returns 0 if enumeration succeded or errno otherwise               */
 bool V4L2Camera::EnumFrameIntervals(int pixfmt, int width, int height)
 {
-	LOGD("V4L2Camera::EnumFrameIntervals: pixfmt: 0x%08x, w:%d, h:%d",pixfmt,width,height);
+	ALOGD("V4L2Camera::EnumFrameIntervals: pixfmt: 0x%08x, w:%d, h:%d",pixfmt,width,height);
 	
 	struct v4l2_frmivalenum fival;
 	int list_fps=0;
@@ -747,27 +747,27 @@ bool V4L2Camera::EnumFrameIntervals(int pixfmt, int width, int height)
 	fival.width = width;
 	fival.height = height;
 	
-	LOGD("\tTime interval between frame: ");
+	ALOGD("\tTime interval between frame: ");
 	while (ioctl(fd,VIDIOC_ENUM_FRAMEINTERVALS, &fival) >=0 ) 
 	{
 		fival.index++;
 		if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) 
 		{
-			LOGD("%u/%u", fival.discrete.numerator, fival.discrete.denominator);
+			ALOGD("%u/%u", fival.discrete.numerator, fival.discrete.denominator);
 			
 			m_AllFmts.add( SurfaceDesc( width, height, fival.discrete.denominator ) );
 			list_fps++;
 		} 
 		else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) 
 		{
-			LOGD("{min { %u/%u } .. max { %u/%u } }",
+			ALOGD("{min { %u/%u } .. max { %u/%u } }",
 				fival.stepwise.min.numerator, fival.stepwise.min.numerator,
 				fival.stepwise.max.denominator, fival.stepwise.max.denominator);
 			break;
 		} 
 		else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) 
 		{
-			LOGD("{min { %u/%u } .. max { %u/%u } / "
+			ALOGD("{min { %u/%u } .. max { %u/%u } / "
 				"stepsize { %u/%u } }",
 				fival.stepwise.min.numerator, fival.stepwise.min.denominator,
 				fival.stepwise.max.numerator, fival.stepwise.max.denominator,
@@ -791,7 +791,7 @@ bool V4L2Camera::EnumFrameIntervals(int pixfmt, int width, int height)
  * returns 0 if enumeration succeded or errno otherwise               */
 bool V4L2Camera::EnumFrameSizes(int pixfmt)
 {
-	LOGD("V4L2Camera::EnumFrameSizes: pixfmt: 0x%08x",pixfmt);
+	ALOGD("V4L2Camera::EnumFrameSizes: pixfmt: 0x%08x",pixfmt);
 	int ret=0;
 	int fsizeind = 0;
 	struct v4l2_frmsizeenum fsize;
@@ -804,36 +804,36 @@ bool V4L2Camera::EnumFrameSizes(int pixfmt)
 		fsize.index++;
 		if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) 
 		{
-			LOGD("{ discrete: width = %u, height = %u }",
+			ALOGD("{ discrete: width = %u, height = %u }",
 				fsize.discrete.width, fsize.discrete.height);
 			
 			fsizeind++;
 			
 			if (!EnumFrameIntervals(pixfmt,fsize.discrete.width, fsize.discrete.height)) 
-				LOGD("  Unable to enumerate frame intervals");
+				ALOGD("  Unable to enumerate frame intervals");
 		} 
 		else if (fsize.type == V4L2_FRMSIZE_TYPE_CONTINUOUS) 
 		{
-			LOGD("{ continuous: min { width = %u, height = %u } .. "
+			ALOGD("{ continuous: min { width = %u, height = %u } .. "
 				"max { width = %u, height = %u } }",
 				fsize.stepwise.min_width, fsize.stepwise.min_height,
 				fsize.stepwise.max_width, fsize.stepwise.max_height);
-			LOGD("  will not enumerate frame intervals.\n");
+			ALOGD("  will not enumerate frame intervals.\n");
 		} 
 		else if (fsize.type == V4L2_FRMSIZE_TYPE_STEPWISE) 
 		{
-			LOGD("{ stepwise: min { width = %u, height = %u } .. "
+			ALOGD("{ stepwise: min { width = %u, height = %u } .. "
 				"max { width = %u, height = %u } / "
 				"stepsize { width = %u, height = %u } }",
 				fsize.stepwise.min_width, fsize.stepwise.min_height,
 				fsize.stepwise.max_width, fsize.stepwise.max_height,
 				fsize.stepwise.step_width, fsize.stepwise.step_height);
-			LOGD("  will not enumerate frame intervals.");
+			ALOGD("  will not enumerate frame intervals.");
 		} 
 		else 
 		{
-			LOGE("  fsize.type not supported: %d\n", fsize.type);
-			LOGE("     (Discrete: %d   Continuous: %d  Stepwise: %d)",
+			ALOGE("  fsize.type not supported: %d\n", fsize.type);
+			ALOGE("     (Discrete: %d   Continuous: %d  Stepwise: %d)",
 				V4L2_FRMSIZE_TYPE_DISCRETE,
 				V4L2_FRMSIZE_TYPE_CONTINUOUS,
 				V4L2_FRMSIZE_TYPE_STEPWISE);
@@ -871,7 +871,7 @@ bool V4L2Camera::EnumFrameSizes(int pixfmt)
 			
 			if (ioctl(fd,VIDIOC_TRY_FMT, &fmt) >= 0) 
 			{
-				LOGD("{ ?GSPCA? : width = %u, height = %u }\n", fmt.fmt.pix.width, fmt.fmt.pix.height);
+				ALOGD("{ ?GSPCA? : width = %u, height = %u }\n", fmt.fmt.pix.width, fmt.fmt.pix.height);
 
 				// Add the mode descriptor
 				m_AllFmts.add( SurfaceDesc( fmt.fmt.pix.width, fmt.fmt.pix.height, 25 ) );
@@ -890,7 +890,7 @@ bool V4L2Camera::EnumFrameSizes(int pixfmt)
  * returns: pointer to LFormats struct containing list of available frame formats */
 bool V4L2Camera::EnumFrameFormats()
 {
-	LOGD("V4L2Camera::EnumFrameFormats");
+	ALOGD("V4L2Camera::EnumFrameFormats");
 	struct v4l2_fmtdesc fmt;
 	
 	// Start with no modes
@@ -903,14 +903,14 @@ bool V4L2Camera::EnumFrameFormats()
 	while (ioctl(fd,VIDIOC_ENUM_FMT, &fmt) >= 0) 
 	{
 		fmt.index++;
-		LOGD("{ pixelformat = '%c%c%c%c', description = '%s' }",
+		ALOGD("{ pixelformat = '%c%c%c%c', description = '%s' }",
 				fmt.pixelformat & 0xFF, (fmt.pixelformat >> 8) & 0xFF,
 				(fmt.pixelformat >> 16) & 0xFF, (fmt.pixelformat >> 24) & 0xFF,
 				fmt.description);
 
 		//enumerate frame sizes for this pixel format
 		if (!EnumFrameSizes(fmt.pixelformat)) {
-			LOGE("  Unable to enumerate frame sizes.");
+			ALOGE("  Unable to enumerate frame sizes.");
 		}
 	};
 	
@@ -945,7 +945,7 @@ bool V4L2Camera::EnumFrameFormats()
 
 SortedVector<SurfaceSize> V4L2Camera::getAvailableSizes() const
 {
-	LOGD("V4L2Camera::getAvailableSizes");
+	ALOGD("V4L2Camera::getAvailableSizes");
 	SortedVector<SurfaceSize> ret;
 	
 	// Iterate through the list. All duplicated entries will be removed
@@ -960,7 +960,7 @@ SortedVector<SurfaceSize> V4L2Camera::getAvailableSizes() const
 
 SortedVector<int> V4L2Camera::getAvailableFps() const
 {
-	LOGD("V4L2Camera::getAvailableFps");
+	ALOGD("V4L2Camera::getAvailableFps");
 	SortedVector<int> ret;
 	
 	// Iterate through the list. All duplicated entries will be removed

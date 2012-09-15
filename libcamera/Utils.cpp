@@ -657,7 +657,7 @@ int jpeg_decode(uint8_t *pic, int stride, uint8_t *buf, int width, int height)
 	ctx.info.ns = getbyte(&ctx); /* number of scans */
 	if (!ctx.info.ns)
 	{
-	LOGE("info ns %d/n",ctx.info.ns);
+	ALOGE("info ns %d/n",ctx.info.ns);
 		err = ERR_NOT_YCBCR_221111;
 		goto error;
 	}
@@ -693,7 +693,7 @@ int jpeg_decode(uint8_t *pic, int stride, uint8_t *buf, int width, int height)
 
 	if (i != 0 || j != 63 || m != 0) 
 	{
-		LOGE("hmm FW error,not seq DCT ??\n");
+		ALOGE("hmm FW error,not seq DCT ??\n");
 	}
 	
 	/*build huffman tables*/

@@ -39,12 +39,12 @@ namespace android {
 CameraFactory::CameraFactory()
         : mCamera(NULL)
 {
-	LOGD("CameraFactory::CameraFactory");
+	ALOGD("CameraFactory::CameraFactory");
 }
 
 CameraFactory::~CameraFactory()
 {
-	LOGD("CameraFactory::~CameraFactory");
+	ALOGD("CameraFactory::~CameraFactory");
     if (mCamera != NULL) {
         delete mCamera;
 		mCamera = NULL;
@@ -61,12 +61,12 @@ CameraFactory::~CameraFactory()
 
 int CameraFactory::cameraDeviceOpen(const hw_module_t* module,int camera_id, hw_device_t** device)
 {
-	LOGD("CameraFactory::cameraDeviceOpen: id = %d", camera_id);
+	ALOGD("CameraFactory::cameraDeviceOpen: id = %d", camera_id);
 
 	*device = NULL;
 
 	if (camera_id < 0 || camera_id >= getCameraNum()) {
-		LOGE("%s: Camera id %d is out of bounds (%d)",
+		ALOGE("%s: Camera id %d is out of bounds (%d)",
 			__FUNCTION__, camera_id, getCameraNum());
 		return -EINVAL;
 	}
@@ -80,17 +80,17 @@ int CameraFactory::cameraDeviceOpen(const hw_module_t* module,int camera_id, hw_
 	int handle = ::open("/dev/video1", O_RDONLY);
 	if (handle >= 0) {
 		::close(handle);
-		LOGI("Using 2 cameras!");
+		ALOGI("Using 2 cameras!");
 		if (camera_id==0) {
-			LOGI("Returning /dev/video1");
+			ALOGI("Returning /dev/video1");
 			mCamera = new CameraHardware(module, "/dev/video1");
 		} else {
-			LOGI("Returning /dev/video0");
+			ALOGI("Returning /dev/video0");
 			mCamera = new CameraHardware(module, "/dev/video0");
 		}
 	} else {
-		LOGI("Using 1 camera!");
-		LOGI("Returning /dev/video0");
+		ALOGI("Using 1 camera!");
+		ALOGI("Returning /dev/video0");
 		mCamera = new CameraHardware(module, "/dev/video0");
 	}
 
@@ -100,7 +100,7 @@ int CameraFactory::cameraDeviceOpen(const hw_module_t* module,int camera_id, hw_
 /* Returns the number of available cameras */
 int CameraFactory::getCameraNum()
 {
-	LOGD("CameraFactory::getCameraNum");
+	ALOGD("CameraFactory::getCameraNum");
 
 	return 2;
 }
@@ -108,16 +108,16 @@ int CameraFactory::getCameraNum()
 
 int CameraFactory::getCameraInfo(int camera_id, struct camera_info* info)
 {
-    LOGD("CameraFactory::getCameraInfo: id = %d,info = %p", camera_id,info);
+    ALOGD("CameraFactory::getCameraInfo: id = %d,info = %p", camera_id,info);
 
     if (camera_id < 0 || camera_id >= getCameraNum()) {
-        LOGE("%s: Camera id %d is out of bounds (%d)",
+        ALOGE("%s: Camera id %d is out of bounds (%d)",
              __FUNCTION__, camera_id, getCameraNum());
         return -EINVAL;
     }
 	
 
-	LOGD("CameraFactory::getCameraInfo: about to fetch info");
+	ALOGD("CameraFactory::getCameraInfo: about to fetch info");
     return CameraHardware::getCameraInfo(camera_id, info);
 }
 
@@ -129,7 +129,7 @@ int CameraFactory::device_open(const hw_module_t* module,
                                        const char* name,
                                        hw_device_t** device)
 {
-	LOGD("CameraFactory::device_open: name = %s", name);
+	ALOGD("CameraFactory::device_open: name = %s", name);
 	
     /*
      * Simply verify the parameters, and dispatch the call inside the
@@ -137,12 +137,12 @@ int CameraFactory::device_open(const hw_module_t* module,
      */
 
     if (module != &HAL_MODULE_INFO_SYM.common) {
-        LOGE("%s: Invalid module %p expected %p",
+        ALOGE("%s: Invalid module %p expected %p",
              __FUNCTION__, module, &HAL_MODULE_INFO_SYM.common);
         return -EINVAL;
     }
     if (name == NULL) {
-        LOGE("%s: NULL name is not expected here", __FUNCTION__);
+        ALOGE("%s: NULL name is not expected here", __FUNCTION__);
         return -EINVAL;
     }
 
@@ -151,14 +151,14 @@ int CameraFactory::device_open(const hw_module_t* module,
 
 int CameraFactory::get_number_of_cameras(void)
 {
-	LOGD("CameraFactory::get_number_of_cameras");
+	ALOGD("CameraFactory::get_number_of_cameras");
     return gCameraFactory.getCameraNum();
 }
 
 int CameraFactory::get_camera_info(int camera_id,
                                            struct camera_info* info)
 {
-	LOGD("CameraFactory::get_camera_info");
+	ALOGD("CameraFactory::get_camera_info");
     return gCameraFactory.getCameraInfo(camera_id, info);
 }
 
