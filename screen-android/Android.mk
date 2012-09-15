@@ -1,3 +1,5 @@
+ifeq  ($(strip $(BOARD_INCLUDE_GNU_SCREEN)),true)
+
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -27,3 +29,5 @@ LOCAL_CFLAGS := -g -O2 -Dandroid \
 -DSCREEN=\"screen-$(VERSION)\"
 
 include $(BUILD_EXECUTABLE)
+
+endif
