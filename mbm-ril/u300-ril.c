@@ -196,7 +196,7 @@ void enqueueRILEvent(int isPrio, void (*callback) (void *param),
 
 again:
     if ((err = pthread_mutex_lock(&q->queueMutex)) != 0)
-        LOGE("%s() failed to take queue mutex: %s!", __func__, strerror(err));
+        ALOGE("%s() failed to take queue mutex: %s!", __func__, strerror(err));
 
     if (q->eventList == NULL)
         q->eventList = e;
@@ -225,11 +225,11 @@ again:
     }
 
     if ((err = pthread_cond_broadcast(&q->cond)) != 0)
-        LOGE("%s() failed to take broadcast queue update: %s!",
+        ALOGE("%s() failed to take broadcast queue update: %s!",
             __func__, strerror(err));
 
     if ((err = pthread_mutex_unlock(&q->queueMutex)) != 0)
-        LOGE("%s() failed to release queue mutex: %s!",
+        ALOGE("%s() failed to release queue mutex: %s!",
             __func__, strerror(err));
 
     if (s_requestQueuePrio.enabled && isPrio == RIL_EVENT_QUEUE_ALL && !done) {
@@ -252,7 +252,7 @@ void getScreenStateLock(void)
 
     /* Just make sure we're not changing anything with regards to screen state. */
     if ((err = pthread_mutex_lock(&s_screen_state_mutex)) != 0)
-        LOGE("%s() failed to take screen state mutex: %s",
+        ALOGE("%s() failed to take screen state mutex: %s",
             __func__,  strerror(err));
 }
 
@@ -271,7 +271,7 @@ void releaseScreenStateLock(void)
     int err;
 
     if ((err = pthread_mutex_unlock(&s_screen_state_mutex)) != 0)
-        LOGE("%s() failed to release screen state mutex: %s",
+        ALOGE("%s() failed to release screen state mutex: %s",
             __func__,  strerror(err));
 
 }
@@ -332,7 +332,7 @@ finally:
     return;
 
 error:
-    LOGE("ERROR: requestScreenState failed");
+    ALOGE("ERROR: requestScreenState failed");
     RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 
     goto finally;
@@ -362,7 +362,7 @@ static char isPrioRequest(int request)
 
 static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
 {
-    LOGD("%s() %s", __func__, requestToString(request));
+    ALOGD("%s() %s", __func__, requestToString(request));
 
     /*
      * These commands won't accept RADIO_NOT_AVAILABLE, so we just return
@@ -382,6 +382,8 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
      */
     if (radio_state == RADIO_STATE_UNAVAILABLE
         && request != RIL_REQUEST_GET_SIM_STATUS) {
+	ALOGW("[%s] Ignoring request due to RADIO_STATE_UNAVAILABLE state",
+		__FUNCTION__);
         RIL_onRequestComplete(t, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
         return;
     }
@@ -399,6 +401,9 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
              request == RIL_REQUEST_GET_IMEI ||
              request == RIL_REQUEST_BASEBAND_VERSION ||
              request == RIL_REQUEST_SCREEN_STATE)) {
+	ALOGW("[%s] Ignoring request due to %s state", __FUNCTION__,
+		radio_state == RADIO_STATE_OFF ?
+		"RADIO_STATE_OFF" : "RADIO_STATE_SIM_NOT_READY");
         RIL_onRequestComplete(t, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
         return;
     }
@@ -594,7 +599,7 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
             break;
 
         default:
-            LOGW("FIXME: Unsupported request logged: %s",
+            ALOGW("FIXME: Unsupported request logged: %s",
                  requestToString(request));
             RIL_onRequestComplete(t, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
             break;
@@ -627,7 +632,7 @@ static void onRequest(int request, void *data, size_t datalen, RIL_Token t)
     r->token = t;
 
     if ((err = pthread_mutex_lock(&q->queueMutex)) != 0)
-        LOGE("%s() failed to take queue mutex: %s!", __func__, strerror(err));
+        ALOGE("%s() failed to take queue mutex: %s!", __func__, strerror(err));
 
     /* Queue empty, just throw r on top. */
     if (q->requestList == NULL)
@@ -641,11 +646,11 @@ static void onRequest(int request, void *data, size_t datalen, RIL_Token t)
     }
 
     if ((err = pthread_cond_broadcast(&q->cond)) != 0)
-        LOGE("%s() failed to broadcast queue update: %s!",
+        ALOGE("%s() failed to broadcast queue update: %s!",
             __func__, strerror(err));
 
     if ((err = pthread_mutex_unlock(&q->queueMutex)) != 0)
-        LOGE("%s() failed to release queue mutex: %s!",
+        ALOGE("%s() failed to release queue mutex: %s!",
             __func__, strerror(err));
 }
 
@@ -664,7 +669,7 @@ static void onRequest(int request, void *data, size_t datalen, RIL_Token t)
 static int onSupports(int requestCode)
 {
     (void) requestCode;
-    LOGI("onSupports() called!");
+    ALOGI("onSupports() called!");
 
     return 1;
 }
@@ -677,7 +682,7 @@ static int onSupports(int requestCode)
 static void onCancel(RIL_Token t)
 {
     (void) t;
-    LOGI("onCancel() called!");
+    ALOGI("onCancel() called!");
 }
 
 static const char *getVersion(void)
@@ -772,7 +777,7 @@ static char initializeChannel(void)
 {
     int err;
 
-    LOGD("%s()", __func__);
+    ALOGD("%s()", __func__);
 
     setRadioState(RADIO_STATE_OFF);
 
@@ -824,7 +829,7 @@ static char initializePrioChannel(void)
 {
     int err;
 
-    LOGD("%s()", __func__);
+    ALOGD("%s()", __func__);
 
     /* Subscribe to ST-Ericsson Pin code event.
      *   The command requests the MS to report when the PIN code has been
@@ -893,6 +898,9 @@ static void onUnsolicited(const char *s, const char *sms_pdu)
         onStkProactiveCommand(s);
     else if (strStartsWith(s, "*STKN:"))
         onStkEventNotify(s);
+    else if (strStartsWith(s, "+PACSP0")) {
+	setRadioState(RADIO_STATE_SIM_READY);
+    }
 }
 
 static void signalCloseQueues(void)
@@ -902,16 +910,16 @@ static void signalCloseQueues(void)
         int err;
         RequestQueue *q = s_requestQueues[i];
         if ((err = pthread_mutex_lock(&q->queueMutex)) != 0)
-            LOGE("%s() failed to take queue mutex: %s",
+            ALOGE("%s() failed to take queue mutex: %s",
                 __func__, strerror(err));
 
         q->closed = 1;
         if ((err = pthread_cond_signal(&q->cond)) != 0)
-            LOGE("%s() failed to broadcast queue update: %s",
+            ALOGE("%s() failed to broadcast queue update: %s",
                 __func__, strerror(err));
 
         if ((err = pthread_mutex_unlock(&q->queueMutex)) != 0)
-            LOGE("%s() failed to take queue mutex: %s", __func__,
+            ALOGE("%s() failed to take queue mutex: %s", __func__,
                  strerror(err));
     }
 }
@@ -919,7 +927,7 @@ static void signalCloseQueues(void)
 /* Called on command or reader thread. */
 static void onATReaderClosed(void)
 {
-    LOGI("AT channel closed");
+    ALOGI("AT channel closed");
 
     if (!get_pending_hotswap())
         setRadioState(RADIO_STATE_UNAVAILABLE);
@@ -931,7 +939,7 @@ static void onATReaderClosed(void)
 /* Called on command thread. */
 static void onATTimeout(void)
 {
-    LOGI("AT channel timeout; restarting..");
+    ALOGI("AT channel timeout; restarting..");
     /* Last resort, throw escape on the line, close the channel
        and hope for the best. */
     at_send_escape();
@@ -984,7 +992,7 @@ static void *queueRunner(void *param)
     struct queueArgs *queueArgs = (struct queueArgs *) param;
     struct RequestQueue *q = NULL;
 
-    LOGI("%s() starting!", __func__);
+    ALOGI("%s() starting!", __func__);
 
     for (;;) {
         fd = -1;
@@ -1024,7 +1032,7 @@ static void *queueRunner(void *param)
             }
 
             if (fd < 0) {
-                LOGE("%s() Failed to open AT channel %s (%s), retrying in %d.",
+                ALOGE("%s() Failed to open AT channel %s (%s), retrying in %d.",
 		    __func__, queueArgs->device_path,
 		    strerror(errno), TIMEOUT_SEARCH_FOR_TTY);
                 sleep(TIMEOUT_SEARCH_FOR_TTY);
@@ -1042,20 +1050,20 @@ static void *queueRunner(void *param)
         timeout.tv_sec = TIMEOUT_EMRDY;
         timeout.tv_usec = 0;
 
-        LOGD("%s() waiting for emrdy...", __func__);
+        ALOGD("%s() waiting for emrdy...", __func__);
         n = select(max_fd, &input, NULL, NULL, &timeout);
 
         if (n < 0) {
-            LOGE("%s() Select error", __func__);
+            ALOGE("%s() Select error", __func__);
             return NULL;
         } else if (n == 0)
-            LOGE("%s() timeout, go ahead anyway(might work)...", __func__);
+            ALOGE("%s() timeout, go ahead anyway(might work)...", __func__);
         else {
             memset(start, 0, MAX_BUF);
             safe_read(fd, start, MAX_BUF-1);
 
             if (start == NULL) {
-                LOGD("%s() Eiii empty string", __func__);
+                ALOGD("%s() Eiii empty string", __func__);
                 tcflush(fd, TCIOFLUSH);
                 FD_CLR(fd, &input);
                 close(fd);
@@ -1063,20 +1071,20 @@ static void *queueRunner(void *param)
             }
 
             if (strstr(start, "EMRDY") == NULL) {
-                LOGD("%s() Eiii this was not EMRDY: %s", __func__, start);
+                ALOGD("%s() Eiii this was not EMRDY: %s", __func__, start);
                 tcflush(fd, TCIOFLUSH);
                 FD_CLR(fd, &input);
                 close(fd);
                 continue;
             }
 
-            LOGD("%s() Got EMRDY", __func__);
+            ALOGD("%s() Got EMRDY", __func__);
         }
 
         ret = at_open(fd, onUnsolicited);
 
         if (ret < 0) {
-            LOGE("%s() AT error %d on at_open", __func__, ret);
+            ALOGE("%s() AT error %d on at_open", __func__, ret);
             at_close();
             continue;
         }
@@ -1087,7 +1095,7 @@ static void *queueRunner(void *param)
         q = &s_requestQueue;
 
         if(initializeCommon()) {
-            LOGE("%s() Failed to initialize channel!", __func__);
+            ALOGE("%s() Failed to initialize channel!", __func__);
             at_close();
             continue;
         }
@@ -1095,7 +1103,7 @@ static void *queueRunner(void *param)
         if (queueArgs->isPrio == 0) {
             q->closed = 0;
             if (initializeChannel()) {
-                LOGE("%s() Failed to initialize channel!", __func__);
+                ALOGE("%s() Failed to initialize channel!", __func__);
                 at_close();
                 continue;
             }
@@ -1108,12 +1116,12 @@ static void *queueRunner(void *param)
 
         if (queueArgs->hasPrio == 0 || queueArgs->isPrio)
             if (initializePrioChannel()) {
-                LOGE("%s() Failed to initialize channel!", __func__);
+                ALOGE("%s() Failed to initialize channel!", __func__);
                 at_close();
                 continue;
             }
 
-        LOGE("%s() Looping the requestQueue!", __func__);
+        ALOGE("%s() Looping the requestQueue!", __func__);
         for (;;) {
             RILRequest *r;
             RILEvent *e;
@@ -1123,20 +1131,20 @@ static void *queueRunner(void *param)
             memset(&ts, 0, sizeof(ts));
 
         if ((err = pthread_mutex_lock(&q->queueMutex)) != 0)
-            LOGE("%s() failed to take queue mutex: %s!",
+            ALOGE("%s() failed to take queue mutex: %s!",
                 __func__, strerror(err));
 
             if (q->closed != 0) {
-                LOGW("%s() AT Channel error, attempting to recover..", __func__);
+                ALOGW("%s() AT Channel error, attempting to recover..", __func__);
                 if ((err = pthread_mutex_unlock(&q->queueMutex)) != 0)
-                    LOGE("Failed to release queue mutex: %s!", strerror(err));
+                    ALOGE("Failed to release queue mutex: %s!", strerror(err));
                 break;
             }
 
             while (q->closed == 0 && q->requestList == NULL &&
                 q->eventList == NULL) {
                 if ((err = pthread_cond_wait(&q->cond, &q->queueMutex)) != 0)
-                    LOGE("%s() failed broadcast queue cond: %s!",
+                    ALOGE("%s() failed broadcast queue cond: %s!",
                         __func__, strerror(err));
             }
 
@@ -1145,13 +1153,13 @@ static void *queueRunner(void *param)
                 int err = 0;
                 err = pthread_cond_timedwait(&q->cond, &q->queueMutex, &q->eventList->abstime);
                 if (err && err != ETIMEDOUT)
-                    LOGE("%s() timedwait returned unexpected error: %s",
+                    ALOGE("%s() timedwait returned unexpected error: %s",
 		        __func__, strerror(err));
             }
 
             if (q->closed != 0) {
                 if ((err = pthread_mutex_unlock(&q->queueMutex)) != 0)
-                    LOGE("%s(): Failed to release queue mutex: %s!",
+                    ALOGE("%s(): Failed to release queue mutex: %s!",
                         __func__, strerror(err));
                 continue; /* Catch the closed bit at the top of the loop. */
             }
@@ -1173,7 +1181,7 @@ static void *queueRunner(void *param)
             }
 
             if ((err = pthread_mutex_unlock(&q->queueMutex)) != 0)
-                LOGE("%s(): Failed to release queue mutex: %s!",
+                ALOGE("%s(): Failed to release queue mutex: %s!",
                     __func__, strerror(err));
 
             if (e) {
@@ -1189,7 +1197,7 @@ static void *queueRunner(void *param)
         }
 
         at_close();
-        LOGE("%s() Re-opening after close", __func__);
+        ALOGE("%s() Re-opening after close", __func__);
     }
     return NULL;
 }
@@ -1208,18 +1216,18 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc,
 
     s_rilenv = env;
 
-    LOGD("%s() entering...", __func__);
+    ALOGD("%s() entering...", __func__);
 
     while (-1 != (opt = getopt(argc, argv, "z:i:p:d:s:x:"))) {
         switch (opt) {
             case 'z':
                 loophost = optarg;
-                LOGD("%s() Using loopback host %s..", __func__, loophost);
+                ALOGD("%s() Using loopback host %s..", __func__, loophost);
                 break;
 
             case 'i':
                 ril_iface = optarg;
-                LOGD("%s() Using network interface %s as primary data channel.",
+                ALOGD("%s() Using network interface %s as primary data channel.",
                      __func__, ril_iface);
                 break;
 
@@ -1229,17 +1237,17 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc,
                     usage(argv[0]);
                     return NULL;
                 }
-                LOGD("%s() Opening loopback port %d", __func__, port);
+                ALOGD("%s() Opening loopback port %d", __func__, port);
                 break;
 
             case 'd':
                 device_path = optarg;
-                LOGD("%s() Opening tty device %s", __func__, device_path);
+                ALOGD("%s() Opening tty device %s", __func__, device_path);
                 break;
 
             case 'x':
                 priodevice_path = optarg;
-                LOGD("%s() Opening priority tty device %s", __func__, priodevice_path);
+                ALOGD("%s() Opening priority tty device %s", __func__, priodevice_path);
                 break;
             default:
                 usage(argv[0]);
@@ -1248,7 +1256,7 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc,
     }
 
     if (ril_iface == NULL) {
-        LOGD("%s() Network interface was not supplied, falling back on usb0!", __func__);
+        ALOGD("%s() Network interface was not supplied, falling back on usb0!", __func__);
         ril_iface = strdup("usb0\0");
     }
 

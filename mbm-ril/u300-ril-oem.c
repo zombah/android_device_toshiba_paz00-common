@@ -60,11 +60,11 @@ void requestOEMHookStrings(void *data, size_t datalen, RIL_Token t)
     int linecount;
     int err;
 
-    LOGD("%s() got OEM_HOOK_STRINGS: %8p %lu", __func__, data, (long) datalen);
+    ALOGD("%s() got OEM_HOOK_STRINGS: %8p %lu", __func__, data, (long) datalen);
 
     for (i = (datalen / sizeof(char *)), cur = (const char **) data;
          i > 0; cur++, i--) {
-        LOGD("%s(): String: %s", __func__, *cur);
+        ALOGD("%s(): String: %s", __func__, *cur);
     }
 
     /* Only take the first string in the array for now */

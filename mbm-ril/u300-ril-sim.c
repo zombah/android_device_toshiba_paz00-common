@@ -311,7 +311,7 @@ void onSimStateChanged(const char *s)
     line = tok = strdup(s);
 
     if (NULL == line) {
-        LOGE("%s() failed to allocate memory!", __func__);
+        ALOGE("%s() failed to allocate memory!", __func__);
         return;
     }
 
@@ -373,14 +373,14 @@ finally:
     return;
 
 error:
-    LOGE("Error in %s", __func__);
+    ALOGE("Error in %s", __func__);
     goto finally;
 }
 
 void onSimHotswap(const char *s)
 {
     if (strcmp ("*EESIMSWAP:0", s) == 0) {
-        LOGD("%s() SIM Removed", __func__);
+        ALOGD("%s() SIM Removed", __func__);
         s_simRemoved = 1;
         /* Toggle radio state since Android won't
          * poll the sim state unless the radio
@@ -390,11 +390,11 @@ void onSimHotswap(const char *s)
         setRadioState(RADIO_STATE_SIM_NOT_READY);
         setRadioState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
     } else if (strcmp ("*EESIMSWAP:1", s) == 0) {
-        LOGD("%s() SIM Inserted", __func__);
+        ALOGD("%s() SIM Inserted", __func__);
         s_simRemoved = 0;
         set_pending_hotswap(1);
     } else
-        LOGD("%s() Uknown Hot Swap Event: %s", __func__, s);
+        ALOGD("%s() Uknown Hot Swap Event: %s", __func__, s);
 }
 
 /**
@@ -407,7 +407,7 @@ static int getNumRetries (int request) {
 
     err = at_send_command_singleline("AT*EPIN?", "*EPIN:", &atresponse);
     if (err != AT_NOERROR) {
-        LOGE("%s() AT*EPIN error", __func__);
+        ALOGE("%s() AT*EPIN error", __func__);
         return -1;
     }
 
@@ -594,7 +594,7 @@ static UICC_Type getUICCType(void)
             /* USIM */
             if(strstr(atresponse->p_intermediates->line, USIM_APPLICATION_ID)){
                 UiccType = UICC_TYPE_USIM;
-                LOGI("Detected card type USIM - stored");
+                ALOGI("Detected card type USIM - stored");
             } else {
                 /* should maybe be unknown */
                 UiccType = UICC_TYPE_SIM;
@@ -602,14 +602,14 @@ static UICC_Type getUICCType(void)
         } else if (at_get_error_type(err) != AT_ERROR) {
             /* Command failed - unknown card */
             UiccType = UICC_TYPE_UNKNOWN;
-            LOGE("%s() Failed to detect card type - Retry at next request", __func__);
+            ALOGE("%s() Failed to detect card type - Retry at next request", __func__);
         } else {
             /* Legacy SIM */
             /* TODO: CUAD only responds OK if SIM is inserted.
              *       This is an inccorect AT response...
              */
             UiccType = UICC_TYPE_SIM;
-            LOGI("Detected card type Legacy SIM - stored");
+            ALOGI("Detected card type Legacy SIM - stored");
         }
         at_response_free(atresponse);
     }
@@ -662,9 +662,9 @@ static int getCardStatus(RIL_CardStatus_v6 **pp_card_status) {
         /* Get the correct app status. */
         p_card_status->applications[0] = app_status_array[sim_status];
         if (uicc_type == UICC_TYPE_SIM)
-            LOGI("[Card type discovery]: Legacy SIM");
+            ALOGI("[Card type discovery]: Legacy SIM");
         else { /* defaulting to USIM */
-            LOGI("[Card type discovery]: USIM");
+            ALOGI("[Card type discovery]: USIM");
             p_card_status->applications[0].app_type = RIL_APPTYPE_USIM;
         }
     }
@@ -695,7 +695,7 @@ void pollSIMState(void *param)
 
     switch (getSIMStatus()) {
     case SIM_NOT_READY:
-        LOGI("SIM_NOT_READY, poll for sim state.");
+        ALOGI("SIM_NOT_READY, poll for sim state.");
         enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSIMState, NULL,
                         &TIMEVAL_SIMPOLL);
         return;
@@ -1072,7 +1072,7 @@ static int sendSimIOCmd(const RIL_SIM_IO_v6 *ioargs, ATResponse **atresponse, RI
             UiccType != UICC_TYPE_SIM) {
         at_response_free(*atresponse);
         *atresponse = NULL;
-        LOGD("%s() Retrying with CGLA access...", __func__);
+        ALOGD("%s() Retrying with CGLA access...", __func__);
         err = sendSimIOCmdUICC(ioargs, atresponse, sr);
     }
     /* END WORKAROUND */
@@ -1172,7 +1172,7 @@ void requestSIM_IO(void *data, size_t datalen, RIL_Token t)
                 if (err < 0)
                     goto error;
                 pathReplaced = 1;
-                LOGD("%s() Path replaced for USIM: %d", __func__, ioargsDup.fileid);
+                ALOGD("%s() Path replaced for USIM: %d", __func__, ioargsDup.fileid);
                 break;
             }
         }
@@ -1184,7 +1184,7 @@ void requestSIM_IO(void *data, size_t datalen, RIL_Token t)
                     if (err < 0)
                         goto error;
                     pathReplaced = 1;
-                    LOGD("%s() Path replaced for telecom: %d", __func__, ioargsDup.fileid);
+                    ALOGD("%s() Path replaced for telecom: %d", __func__, ioargsDup.fileid);
                     break;
                 }
             }
@@ -1335,7 +1335,7 @@ void requestSetFacilityLock(void *data, size_t datalen, RIL_Token t)
     (void) datalen;
 
     if (datalen < 4 * sizeof(char **)) {
-        LOGE("%s() bad data length!", __func__);
+        ALOGE("%s() bad data length!", __func__);
         goto exit;
     }
 
@@ -1345,7 +1345,7 @@ void requestSetFacilityLock(void *data, size_t datalen, RIL_Token t)
     facility_class = ((char **) data)[3];
 
     if (*facility_mode_str != '0' && *facility_mode_str != '1') {
-        LOGE("%s() bad facility mode!", __func__);
+        ALOGE("%s() bad facility mode!", __func__);
         goto exit;
     }
 
@@ -1364,7 +1364,7 @@ void requestSetFacilityLock(void *data, size_t datalen, RIL_Token t)
         switch (at_get_cme_error(err)) {
         /* CME ERROR 11: "SIM PIN required" happens when PIN is wrong */
         case CME_SIM_PIN_REQUIRED:
-            LOGI("Wrong PIN");
+            ALOGI("Wrong PIN");
             errorril = RIL_E_PASSWORD_INCORRECT;
             break;
         /*
@@ -1372,18 +1372,18 @@ void requestSetFacilityLock(void *data, size_t datalen, RIL_Token t)
          * 3 times in a row
          */
         case CME_SIM_PUK_REQUIRED:
-            LOGI("PIN locked, change PIN with PUK");
+            ALOGI("PIN locked, change PIN with PUK");
             num_retries = 0;/* PUK required */
             errorril = RIL_E_PASSWORD_INCORRECT;
             break;
         /* CME ERROR 16: "Incorrect password" happens when PIN is wrong */
         case CME_INCORRECT_PASSWORD:
-            LOGI("Incorrect password, Facility: %s", facility_string);
+            ALOGI("Incorrect password, Facility: %s", facility_string);
             errorril = RIL_E_PASSWORD_INCORRECT;
             break;
         /* CME ERROR 17: "SIM PIN2 required" happens when PIN2 is wrong */
         case CME_SIM_PIN2_REQUIRED:
-            LOGI("Wrong PIN2");
+            ALOGI("Wrong PIN2");
             errorril = RIL_E_PASSWORD_INCORRECT;
             break;
         /*
@@ -1391,7 +1391,7 @@ void requestSetFacilityLock(void *data, size_t datalen, RIL_Token t)
          * 3 times in a row
          */
         case CME_SIM_PUK2_REQUIRED:
-            LOGI("PIN2 locked, change PIN2 with PUK2");
+            ALOGI("PIN2 locked, change PIN2 with PUK2");
             num_retries = 0;/* PUK2 required */
             errorril = RIL_E_SIM_PUK2;
             break;
@@ -1430,7 +1430,7 @@ void requestQueryFacilityLock(void *data, size_t datalen, RIL_Token t)
     (void) datalen;
 
     if (datalen < 3 * sizeof(char **)) {
-        LOGE("%s() bad data length!", __func__);
+        ALOGE("%s() bad data length!", __func__);
         goto error;
     }
 

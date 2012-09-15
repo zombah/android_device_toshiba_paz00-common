@@ -188,7 +188,7 @@ void requestBasebandVersion(void *data, size_t datalen, RIL_Token t)
     err = at_send_command_singleline("AT+CGMR", "\0", &atresponse);
 
     if (err != AT_NOERROR) {
-        LOGE("%s() Error reading Base Band Version", __func__);
+        ALOGE("%s() Error reading Base Band Version", __func__);
         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
         return;
     }
@@ -265,7 +265,7 @@ void onSIMReady(void *p)
      */
     err = at_send_command("AT*ETZR=3");
     if (err != AT_NOERROR) {
-        LOGD("%s() Degrading nitz to mode 2", __func__);
+        ALOGD("%s() Degrading nitz to mode 2", __func__);
         at_send_command("AT*ETZR=2");
     }
 
@@ -326,17 +326,17 @@ void setRadioState(RIL_RadioState newState)
     int err;
 
     if ((err = pthread_mutex_lock(&s_state_mutex)) != 0)
-        LOGE("%s() failed to take state mutex: %s!", __func__, strerror(err));
+        ALOGE("%s() failed to take state mutex: %s!", __func__, strerror(err));
 
     oldState = sState;
 
-    LOGI("%s() oldState=%s newState=%s", __func__, radioStateToString(oldState),
+    ALOGI("%s() oldState=%s newState=%s", __func__, radioStateToString(oldState),
          radioStateToString(newState));
 
     sState = newState;
 
     if ((err = pthread_mutex_unlock(&s_state_mutex)) != 0)
-        LOGE("%s() failed to release state mutex: %s!", __func__, strerror(err));
+        ALOGE("%s() failed to release state mutex: %s!", __func__, strerror(err));
 
     /* Do these outside of the mutex. */
     if (sState != oldState || sState == RADIO_STATE_SIM_LOCKED_OR_ABSENT) {
@@ -406,7 +406,7 @@ int retryRadioPower(void)
     int err;
     int i;
 
-    LOGD("%s()", __func__);
+    ALOGD("%s()", __func__);
     for (i=0; i<RADIO_POWER_ATTEMPTS; i++) {
         sleep(1);
         err = at_send_command("AT+CFUN=%d", getPreferredNetworkType());
@@ -431,7 +431,7 @@ void requestRadioPower(void *data, size_t datalen, RIL_Token t)
     int restricted;
 
     if (datalen < sizeof(int *)) {
-        LOGE("%s() bad data length!", __func__);
+        ALOGE("%s() bad data length!", __func__);
         goto error;
     }
 
@@ -460,7 +460,7 @@ void requestRadioPower(void *data, size_t datalen, RIL_Token t)
         }
         setRadioState(RADIO_STATE_SIM_NOT_READY);
     } else {
-        LOGE("%s() Erroneous input", __func__);
+        ALOGE("%s() Erroneous input", __func__);
         goto error;
     }
 

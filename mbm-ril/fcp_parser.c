@@ -124,6 +124,6 @@ int fcp_to_ts_51011(/*in*/ const char *stream, /*in*/ size_t len,
 
  except:
  #undef FCP_CVT_THROW
-    LOGE("%s() FCP to TS 510 11: Specification violation: %s.", __func__, what);
+    ALOGE("%s() FCP to TS 510 11: Specification violation: %s.", __func__, what);
     goto finally;
 }
