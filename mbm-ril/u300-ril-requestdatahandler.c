@@ -68,6 +68,7 @@ static void dummyResponse(void);
 #define responseSMS dummyResponse
 #define responseString dummyResponse
 #define responseStrings dummyResponse
+#define responseStringsNetworks dummyResponse
 #define responseVoid dummyResponse
 
 #define responseSimStatus dummyResponse
