@@ -140,11 +140,11 @@
 
 <!-- new unstable settings -->
 
-    <!-- Component name of the service providing network location support. -->
-    <string name="config_networkLocationProvider">com.google.android.location.NetworkLocationProvider</string>
+    <!-- Package name providing network location support. -->
+    <string name="config_networkLocationProviderPackageName" translatable="false">@null</string>
 
-    <!-- Component name of the service providing geocoder API support. -->
-    <string name="config_geocodeProvider">com.google.android.location.GeocodeProvider</string>
+    <!-- Package name providing geocoder API support. -->
+    <string name="config_geocodeProviderPackageName" translatable="false">@null</string>
 
      <!-- Diable lockscreen rotation by default -->
      <bool name="config_enableLockScreenRotation">false</bool>
@@ -167,10 +167,6 @@
      <!-- Sets whether menu shortcuts should be displayed on panel menus when 
           a keyboard is present. -->
      <bool name="config_showMenuShortcutsWhenKeyboardPresent">true</bool>
-
-     <!-- Whether to set a system prop (sys.orientation.landscape)
-          when rotating for devices that have rotating buttons -->
-     <bool name="config_setLandscapeProp">true</bool>
 
      <!-- Control the behavior when the user long presses the power button.
      	0 - Nothing
@@ -211,4 +207,12 @@
        For example, a device with Home, Back and Menu keys would set this
        config to 7. -->
     <integer name="config_deviceHardwareKeys">31</integer>
+
+    <!-- If a dock provides a lid switch, that lid can be removed. This
+              setting is used to determine, whether lidOpenRotation has to be
+                       applied. -->
+    <bool name="config_hasRemovableLid">true</bool>
+    
+    <!-- Device has a h/w rotation lock switch -->
+    <bool name="config_hasRotationLockSwitch">true</bool>
 </resources>
