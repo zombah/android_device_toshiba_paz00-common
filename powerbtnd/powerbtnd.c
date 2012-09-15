@@ -38,18 +38,18 @@ int openfds(struct pollfd pfds[])
 			snprintf(name, PATH_MAX, "%s/%s", dirname, de->d_name);
 			fd = open(name, O_RDWR | O_NONBLOCK);
 			if (fd < 0) {
-				LOGE("could not open %s, %s", name, strerror(errno));
+				ALOGE("could not open %s, %s", name, strerror(errno));
 				continue;
 			}
 			name[sizeof(name) - 1] = '\0';
 			if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
-				LOGE("could not get device name for %s, %s\n", name, strerror(errno));
+				ALOGE("could not get device name for %s, %s\n", name, strerror(errno));
 				name[0] = '\0';
 			}
 
 			// TODO: parse /etc/excluded-input-devices.xml
 			if (!strcmp(name, "NVEC power button")) {
-				LOGI("open %s(%s) ok", de->d_name, name);
+				ALOGI("open %s(%s) ok", de->d_name, name);
 				pfds[cnt].events = POLLIN;
 				pfds[cnt++].fd = fd;
 				if (cnt < MAX_POWERBTNS)
@@ -103,7 +103,7 @@ int main()
 		ioctl(ufd, UI_SET_KEYBIT, KEY_POWER);
 		ioctl(ufd, UI_DEV_CREATE, 0);
 	} else {
-		LOGE("could not open uinput device: %s", strerror(errno));
+		ALOGE("could not open uinput device: %s", strerror(errno));
 		return -1;
 	}
 
@@ -112,9 +112,9 @@ int main()
 	for (;;) {
 		int i;
 		int pollres = poll(pfds, cnt, timeout) ;
-		LOGV("pollres=%d %d\n", pollres, timeout);
+		ALOGV("pollres=%d %d\n", pollres, timeout);
 		if (pollres < 0) {
-			LOGE("poll error: %s", strerror(errno));
+			ALOGE("poll error: %s", strerror(errno));
 			break;
 		}
 		if (pollres == 0) { // timeout, send one power key
@@ -127,10 +127,10 @@ int main()
 				struct input_event iev;
 				size_t res = read(pfds[i].fd, &iev, sizeof(iev));
 				if (res < sizeof(iev)) {
-					LOGW("insufficient input data(%d)? fd=%d", res, pfds[i].fd);
+					ALOGW("insufficient input data(%d)? fd=%d", res, pfds[i].fd);
 					continue;
 				}
-				LOGV("type=%d scancode=%d value=%d from fd=%d", iev.type, iev.code, iev.value, pfds[i].fd);
+				ALOGV("type=%d scancode=%d value=%d from fd=%d", iev.type, iev.code, iev.value, pfds[i].fd);
 				if (iev.type == EV_KEY && iev.code == KEY_POWER && !iev.value) {
 					if (prop[0] != '1' || timeout > 0) {
 						simulate_powerkey(ufd, 1);
