@@ -3,3 +3,7 @@
 echo "15" > /sys/module/wakelock/parameters/debug_mask
 #echo "15" > /sys/module/userwakelock/parameters/debug_mask
 #echo "15" > /sys/module/earlysuspend/parameters/debug_mask
+
+#LPx Suspend mode
+#switch to lp1 because r15 and r16 have lp0 harmony issues
+echo "lp1" > /sys/power/suspend/mode
