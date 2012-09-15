@@ -25,4 +25,7 @@
     <integer name="def_user_rotation">0</integer>
     <!-- Default for UI touch sounds enabled -->
     <bool name="def_sound_effects_enabled">false</bool>
+    <!-- Network time and time zone -->
+    <bool name="def_auto_time">false</bool>
+    <bool name="def_auto_time_zone">false</bool>
 </resources>
