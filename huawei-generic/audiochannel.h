@@ -19,6 +19,7 @@
 #define _AUDIOCHANNEL_H 1
 
 #include "audioqueue.h"
+#include "echocancel.h"
 #include <pthread.h>
 
 struct GsmAudioTunnel {
@@ -45,9 +46,11 @@ struct GsmAudioTunnel {
     void* rec_buf;                  // Pointer to the recording buffer
 	struct AudioQueue rec_q;		// Audio record queue
 	
+	// Echo cancellation
+	struct echocancel_ctx echo;		// Echo cancellator
 };
 
-#define GSM_AUDIO_CHANNEL_STATIC_INIT { -1, 0,0,0,0,0,0, 0,0,0,{0} ,0,0,0,{0} }
+#define GSM_AUDIO_CHANNEL_STATIC_INIT { -1, 0,0,0,0,0, 0,0,0,{0} ,0,0,0,{0} }
 
 #ifdef __cplusplus
 extern "C" {

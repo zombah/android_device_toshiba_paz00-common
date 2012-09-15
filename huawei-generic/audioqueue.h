@@ -16,23 +16,26 @@
 **
 */
 
-/* A resampling Audio queue */
+/* A resampling Audio queue with AGC */
 
 #ifndef __AUDIOQUEUE_H
 #define __AUDIOQUEUE_H 1
 
 #include <pthread.h>
 #include <sys/time.h>
+#include "agc.h"
 
 struct AudioQueue {
 	volatile int running;	// != 0 if running
 	unsigned int size;		// Queue size in samples
+	unsigned int low;		// Low limit
+	unsigned int high;		// High limit
 	unsigned int sample_sz;	// Sample size in bytes
 	unsigned int wr_pos;	// Write position in samples
 	unsigned int rd_pos;	// Read position in samples
 	unsigned int ratio;		// Resampling ratio including speedup/speeddown due to fullness
 	unsigned int step;		// Linear interpolation step
-
+	struct agc_ctx agc;		// AGC control
 	void* data;				// Queue Data buffer
 };
 

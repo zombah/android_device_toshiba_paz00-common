@@ -48,25 +48,21 @@
 #include <media/AudioTrack.h>
 
 // ---- Android sound streaming ----
-
-#define  AUDIOCHANNEL_DEBUG 0
+// #define CHECK_MEM_OVERRUN 1
+#define AUDIOCHANNEL_DEBUG 0
 #if AUDIOCHANNEL_DEBUG
 #  define  D(...)   ALOGD(__VA_ARGS__)
 #else
 #  define  D(...)   ((void)0)
 #endif 
 
-/* Wait for pending output to be written on FD.  */
-static int tcdrain (int fd)
+
+
+static inline int labs(int x)
 {
-	/* The TIOCSETP control waits for pending output to be written before
-	affecting its changes, so we use that without changing anything.  */
-	struct sgttyb b;
-	if (ioctl (fd, TIOCGETP, (void *) &b) < 0 ||
-		ioctl (fd, TIOCSETP, (void *) &b) < 0)
-			return -1;
-	return 0;
+	return (x < 0) ? -x : x;
 }
+
 
 /* modemAudioIOThread:
     Output/inputs an audio frame (160 samples) to the 3G audio port of the cell modem
@@ -81,6 +77,8 @@ static void* modemAudioIOThread(void* data)
 
 	struct GsmAudioTunnel* ctx = (struct GsmAudioTunnel*)data;
     int res = 0;
+	int bps = (ctx->bits_per_sample/8);
+	int frame_bytes = ctx->frame_size * bps;
 
 	ALOGD("modemAudioIOThread begin");
 						
@@ -92,20 +90,57 @@ static void* modemAudioIOThread(void* data)
 	// Get audio from the queue and push it into the modem
 	while (AudioQueue_isrunning(&ctx->rec_q) &&
 		   AudioQueue_isrunning(&ctx->play_q)) {
+		struct timeval now;
 
 		// Write audio to the 3G modem audio port in 320 bytes chunks... This is
 		//  required by huawei modems...
 		D("[T]Before AudioQueue_get");
-		AudioQueue_get(&ctx->rec_q,ctx->play_buf,ctx->frame_size);
-		D("[T]After AudioQueue_get");
-		
+		res = AudioQueue_get(&ctx->rec_q,ctx->play_buf,ctx->frame_size);
+		D("[T]After AudioQueue_get: 0x%04x, 0x%04x, 0x%04x, 0x%04x, 0x%04x",((short*)ctx->play_buf)[0],((short*)ctx->play_buf)[1],((short*)ctx->play_buf)[2],((short*)ctx->play_buf)[3],((short*)ctx->play_buf)[4] );
+	
+#ifdef CHECK_MEM_OVERRUN
+		if (((int*)ctx->rec_buf)[-1                                        ] != 0x1A3B5C7D) {
+			ALOGE("recbuf: Corruption at start: 0x%08x",((int*)ctx->rec_buf)[-1]);
+		}
+		if (((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+			ALOGE("recbuf: Corruption at end: 0x%08x",((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+		}
+		if (((int*)ctx->play_buf)[-1                                        ] != 0x1A3B5C7D) {
+			ALOGE("playbuf: Corruption at start: 0x%08x",((int*)ctx->play_buf)[-1]);
+		}
+		if (((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+			ALOGE("playbuf: Corruption at end: 0x%08x",((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+		}
+#endif
+
 		if (!AudioQueue_isrunning(&ctx->rec_q) || 
 			!AudioQueue_isrunning(&ctx->play_q))
 			break;
 
+		/* Fill missing samples with silence, if needed */
+		if (ctx->frame_size > res) {
+			memset((char*)ctx->play_buf + res * bps, 0, (ctx->frame_size - res) * bps);
+		}
+
+#ifdef CHECK_MEM_OVERRUN
+		if (((int*)ctx->rec_buf)[-1                                        ] != 0x1A3B5C7D) {
+			ALOGE("recbuf: Corruption at start: 0x%08x",((int*)ctx->rec_buf)[-1]);
+		}
+		if (((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+			ALOGE("recbuf: Corruption at end: 0x%08x",((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+		}
+		if (((int*)ctx->play_buf)[-1                                        ] != 0x1A3B5C7D) {
+			ALOGE("playbuf: Corruption at start: 0x%08x",((int*)ctx->play_buf)[-1]);
+		}
+		if (((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+			ALOGE("playbuf: Corruption at end: 0x%08x",((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+		}
+#endif
+
+			
 		// Write audio chunk
 		D("[T]Before write");
-		res = write(ctx->fd, ctx->play_buf, ctx->frame_size * (ctx->bits_per_sample/8));
+		res = write(ctx->fd, ctx->play_buf, frame_bytes);
 		D("[T]After write: res: %d",res);
 				  
 		if (!AudioQueue_isrunning(&ctx->rec_q) || 
@@ -113,14 +148,6 @@ static void* modemAudioIOThread(void* data)
 			 res < 0)
 			break;
 
-		// Make sure to drain previous audio to the modem - The grouping of writes does not work well with the voice channel
-		tcdrain(ctx->fd);
-
-		if (!AudioQueue_isrunning(&ctx->rec_q) || 
-			!AudioQueue_isrunning(&ctx->play_q) ||
-			 res < 0)
-			break;
-			
 		// Read data from the modem
 		D("[T]Before Select");
 
@@ -152,27 +179,115 @@ static void* modemAudioIOThread(void* data)
 		/* If something to read, read it */
 		if (FD_ISSET(ctx->fd, &input)) {
 			D("[T]Before read");
-			res = read(ctx->fd, ctx->rec_buf, ctx->frame_size * (ctx->bits_per_sample/8));
+			gettimeofday(&now,NULL);
+			res = read(ctx->fd, ctx->rec_buf, frame_bytes);
 			D("[T]After read: res: %d",res);
-			
+
 			if (!AudioQueue_isrunning(&ctx->play_q) || 
 				!AudioQueue_isrunning(&ctx->rec_q) || 
 				 res < 0)
 				break;
-			
-		}
 
+#ifdef CHECK_MEM_OVERRUN
+			if (((int*)ctx->rec_buf)[-1                                        ] != 0x1A3B5C7D) {
+				ALOGE("recbuf: Corruption at start: 0x%08x",((int*)ctx->rec_buf)[-1]);
+			}
+			if (((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+				ALOGE("recbuf: Corruption at end: 0x%08x",((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+			}
+			if (((int*)ctx->play_buf)[-1                                        ] != 0x1A3B5C7D) {
+				ALOGE("playbuf: Corruption at start: 0x%08x",((int*)ctx->play_buf)[-1]);
+			}
+			if (((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+				ALOGE("playbuf: Corruption at end: 0x%08x",((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+			} 
+#endif
 
-		// If muted, silence audio
-		if (ctx->ismuted) {
-			memset( ctx->rec_buf, 0, ctx->frame_size * (ctx->bits_per_sample/8));
+			// If muted, silence audio
+			if (ctx->ismuted) {
+				memset( ctx->rec_buf, 0, frame_bytes);
+			}
+
+#ifdef CHECK_MEM_OVERRUN
+			if (((int*)ctx->rec_buf)[-1                                        ] != 0x1A3B5C7D) {
+				ALOGE("recbuf: Corruption at start: 0x%08x",((int*)ctx->rec_buf)[-1]);
+			}
+			if (((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+				ALOGE("recbuf: Corruption at end: 0x%08x",((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+			}
+			if (((int*)ctx->play_buf)[-1                                        ] != 0x1A3B5C7D) {
+				ALOGE("playbuf: Corruption at start: 0x%08x",((int*)ctx->play_buf)[-1]);
+			}
+			if (((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+				ALOGE("playbuf: Corruption at end: 0x%08x",((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+			}
+#endif
+
+			// This means voice data corruption. More frequent than you could think. We must compensate it, or we end with garbled 
+			// voice...
+			if (res < frame_bytes) {
+#if AUDIOCHANNEL_DEBUG
+				char buf[160*5+1];
+#endif
+				int p;
+				unsigned char* b;
+				short* d;
+				int tf;
+
+#if AUDIOCHANNEL_DEBUG
+				// Dump buffer
+				for (p = 0;p < 160; p++) {
+					short s = ((short*)ctx->rec_buf)[p];
+					sprintf(&buf[p*5],"%04x ",(s & 0xFFFFU));
+				}
+				buf[160*5] = 0;
+				D("[T] Corrupted buffer (%d): %s",res,buf);
+#endif
+				
+				// Try to reconstruct data . Determine variance of low and high nibbles.
+				d = (short*)ctx->rec_buf;
+				b = (unsigned char*)ctx->rec_buf;
+				tf = frame_bytes - res;
+				for (p = 0; p < 317 && tf!=0; p+=2) {
+					if (labs(((signed char*)b)[p+2] - ((signed char*)b)[p]) < labs(((signed char*)b)[p+1] - ((signed char*)b)[p+3]) ) {
+						/* Probably, this is the point ... Insert an space */
+						memmove(b+p+1,b+p,320-p-1);
+						tf--;
+						p+=2;
+					}
+				}
+				
+#if AUDIOCHANNEL_DEBUG				
+				// Dump buffer
+				for (p = 0;p < 160; p++) {
+					short s = ((short*)ctx->rec_buf)[p];
+					sprintf(&buf[p*5],"%04x ",(s & 0xFFFFU));
+				}
+				buf[160*5] = 0;
+				D("[T] Fixed buffer (%d): %s",res,buf);
+#endif
+			}
+			
+			// Write it to the audio queue
+			D("[T]Before AudioQueue_add (s:%d.%06u): %04x %04x %04x %04x %04x",now.tv_sec,now.tv_usec,((short*)ctx->rec_buf)[0] & 0xFFFF,((short*)ctx->rec_buf)[1] & 0xFFFF,((short*)ctx->rec_buf)[2] & 0xFFFF,((short*)ctx->rec_buf)[3] & 0xFFFF,((short*)ctx->rec_buf)[4] & 0xFFFF );
+			AudioQueue_add(&ctx->play_q, ctx->rec_buf, ctx->frame_size);
+			D("[T]After AudioQueue_add");
+
+#ifdef CHECK_MEM_OVERRUN
+			if (((int*)ctx->rec_buf)[-1                                        ] != 0x1A3B5C7D) {
+				ALOGE("recbuf: Corruption at start: 0x%08x",((int*)ctx->rec_buf)[-1]);
+			}
+			if (((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+				ALOGE("recbuf: Corruption at end: 0x%08x",((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+			}
+			if (((int*)ctx->play_buf)[-1                                        ] != 0x1A3B5C7D) {
+				ALOGE("playbuf: Corruption at start: 0x%08x",((int*)ctx->play_buf)[-1]);
+			}
+			if (((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] != 0xD7C5B3A1) {
+				ALOGE("playbuf: Corruption at end: 0x%08x",((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2]);
+			}
+#endif
 		}
-			
-		// Write it to the audio queue
-		D("[T]Before AudioQueue_add");
-		AudioQueue_add(&ctx->play_q,ctx->rec_buf,ctx->frame_size);
-		D("[T]After AudioQueue_add");
-			
 		
 	};
 	
@@ -185,23 +300,18 @@ static void AndroidRecorderCallback(int event, void* userData, void* info)
 {
     struct GsmAudioTunnel *ctx = (struct GsmAudioTunnel*) userData;
     android::AudioRecord::Buffer* uinfo = (android::AudioRecord::Buffer*) info;
-    unsigned nsamples;
-    void *input;
+	int bps;
 
-    if(!ctx || !uinfo)
-        return;
+    if(!ctx || !uinfo || event != android::AudioRecord::EVENT_MORE_DATA)
+		return;
 
-    if (!AudioQueue_isrunning(&ctx->rec_q))
+	if (!AudioQueue_isrunning(&ctx->rec_q))
         goto on_break;
-
-    input = (void *) uinfo->raw;
-
-    // Calculate number of total samples we've got
-    nsamples = uinfo->frameCount;
 
 	// Post data into the recording queue. Queue should self adapt and adjust sampling rate
 	D("[A]Before AudioQueue_add");
-	AudioQueue_add(&ctx->rec_q, input, nsamples);
+	bps = ctx->bits_per_sample/8;
+	uinfo->size = AudioQueue_add(&ctx->rec_q, uinfo->raw, uinfo->size / bps) * bps;
 	D("[A]After AudioQueue_add");
     return;
 
@@ -216,24 +326,20 @@ on_break:
 /* Called to get audio samples to playback */
 static void AndroidPlayerCallback( int event, void* userData, void* info)
 {
-
-    unsigned nsamples_req;
-    void *output;
     struct GsmAudioTunnel *ctx = (struct GsmAudioTunnel*) userData;
     android::AudioTrack::Buffer* uinfo = (android::AudioTrack::Buffer*) info;
-
-    if (!ctx || !uinfo)
+	int bps;
+	
+    if (!ctx || !uinfo || event != android::AudioTrack::EVENT_MORE_DATA)
         return;
-
+	
     if (!AudioQueue_isrunning(&ctx->play_q))
         goto on_break;
 
-    nsamples_req = uinfo->frameCount;
-    output = (void*) uinfo->raw;
-
 	// Read data from the Playback audioqueue
 	D("[A]Before AudioQueue_get");
-	AudioQueue_get(&ctx->play_q, output, nsamples_req);
+	bps = ctx->bits_per_sample/8;
+	uinfo->size = AudioQueue_get(&ctx->play_q, uinfo->raw, uinfo->size / bps) * bps;
 	D("[A]After AudioQueue_get");
     return;
 
@@ -244,7 +350,7 @@ on_break:
 	}
 	
 	/* Silence output if we are not running */
-	memset(output, 0, nsamples_req * (ctx->bits_per_sample >> 3));
+	memset(uinfo->raw, 0, uinfo->size);
     return;
 }
 
@@ -259,13 +365,15 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
 	size_t playNotifyBuffSize = 0;
 	size_t recBuffSize = 0;
 	size_t recNotifyBuffSize = 0;
+	int play_qsize;
+	int rec_qsize;
 
 	audio_format_t format = (bits_per_sample > 8) 
         ? AUDIO_FORMAT_PCM_16_BIT
         : AUDIO_FORMAT_PCM_8_BIT;
 
     /* If already running, dont do it again */
-    if (AudioQueue_isrunning(&ctx->rec_q) && 
+    if (AudioQueue_isrunning(&ctx->rec_q) ||
 		AudioQueue_isrunning(&ctx->play_q))
         return 0;
 
@@ -279,16 +387,77 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
 	ALOGD("Opening GSM voice channel '%s', sampling_rate:%u hz, frame_size:%u, bits_per_sample:%u  ...",
         gsmvoicechannel,sampling_rate,frame_size,bits_per_sample);
 
+    // Compute buffer sizes for record and playback
+#if 0
+    playBuffSize = 0;
+    android::AudioSystem::getInputBufferSize(
+                    ctx->sampling_rate, // Samples per second
+                    format,
+                    AUDIO_CHANNEL_IN_MONO,
+                    &playBuffSize);
+	recBuffSize = playBuffSize;
+#else
+	android::AudioRecord::getMinFrameCount((int*)&recBuffSize,
+	                    ctx->sampling_rate, // Samples per second
+						format,
+						1);
+						
+    //android::AudioSystem::getInputBufferSize(
+    //                ctx->sampling_rate, // Samples per second
+    //                format,
+    //                AUDIO_CHANNEL_IN_MONO,
+    //                &recBuffSize);
+	//recBuffSize	<<= 1; // Convert to bytes
+	//recBuffSize <<= 1; // Convert to bytes
+	//while (recBuffSize < frame_size)  recBuffSize <<= 1;
+	//while (playBuffSize < frame_size) playBuffSize <<= 1;
+						
+	android::AudioTrack::getMinFrameCount((int*)&playBuffSize,
+						AUDIO_STREAM_VOICE_CALL,
+	                    ctx->sampling_rate); // Samples per second
+	
+	// Do not accept less than the frame size ... Makes no point going lower than that
+	if (playBuffSize < frame_size)
+		playBuffSize = frame_size;
+	if (recBuffSize < frame_size)
+		recBuffSize = frame_size;
+	
+	// Compute minimum playback queue size as a power of 2
+	play_qsize = 0;
+	while ((1 << play_qsize) < playBuffSize) play_qsize++;
+	play_qsize += 2; // And quad it
+	
+	// Compute minimum record queue size as a power of 2
+	rec_qsize = 0;
+	while ((1 << rec_qsize) < recBuffSize) rec_qsize++;
+	rec_qsize += 2; // And quad it
+	
+#endif
+
+    // We use 2 * size of input/output buffer for ping pong use of record/playback buffers.
+    playNotifyBuffSize = playBuffSize;
+	playBuffSize <<= 1;
+	recNotifyBuffSize = recBuffSize;
+    recBuffSize <<= 1;
+	ALOGD("play samples: %d [q:%d], record samples: %d [q:%d]",playNotifyBuffSize,play_qsize,recNotifyBuffSize,rec_qsize);
+		
 	// Init the audioqueues
-	if (AudioQueue_init(&ctx->play_q,15,bits_per_sample>>3) < 0) {
+	if (AudioQueue_init(&ctx->play_q,play_qsize,bits_per_sample>>3) < 0) {
 		ALOGE("Could not init Playback AudioQueue");
 		goto error;
 	}
-	if (AudioQueue_init(&ctx->rec_q,15,bits_per_sample>>3) < 0) {
+	if (AudioQueue_init(&ctx->rec_q,rec_qsize,bits_per_sample>>3) < 0) {
 		ALOGE("Could not init Record AudioQueue");
 		goto error;
 	}
-		
+	
+	ALOGD("Opening voice channel....");
+	
+/*	if (echocancel_init(&ctx->echo, recNotifyBuffSize ) < 0) {
+		ALOGE("Could not init Record AudioQueue");
+		goto error;
+	}
+*/	
     // Open the device(com port) in blocking mode 
     ctx->fd = open(gsmvoicechannel, O_RDWR | O_NOCTTY);
     if (ctx->fd < 0) {
@@ -307,6 +476,27 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
     tcsetattr(ctx->fd,TCSANOW, &newtio);
 
 	ALOGD("Creating streams....");
+#ifdef CHECK_MEM_OVERRUN
+    ctx->rec_buf = malloc(8 + ctx->frame_size * (ctx->bits_per_sample/8));
+    if (!ctx->rec_buf) {
+		ALOGE("Failed to allocate buffer for playback");
+		goto error;
+    }
+
+    ctx->play_buf = malloc(8 + ctx->frame_size * (ctx->bits_per_sample/8));
+    if (!ctx->play_buf) {
+		ALOGE("Failed to allocate buffer for record");
+		goto error;
+    }
+
+	ctx->rec_buf = (int*)ctx->rec_buf + 1;
+	((int*)ctx->rec_buf)[-1                                        ] = 0x1A3B5C7D;
+	((int*)ctx->rec_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] = 0xD7C5B3A1;
+	ctx->play_buf = (int*)ctx->play_buf + 1;
+	((int*)ctx->play_buf)[-1                                        ] = 0x1A3B5C7D;
+	((int*)ctx->play_buf)[(ctx->frame_size * (ctx->bits_per_sample/8))>>2] = 0xD7C5B3A1;
+
+#else
     ctx->rec_buf = malloc(ctx->frame_size * (ctx->bits_per_sample/8));
     if (!ctx->rec_buf) {
 		ALOGE("Failed to allocate buffer for playback");
@@ -318,48 +508,19 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
 		ALOGE("Failed to allocate buffer for record");
 		goto error;
     }
-
-    // Compute buffer sizes for record and playback
-#if 0
-    playBuffSize = 0;
-    android::AudioSystem::getInputBufferSize(
-                    ctx->sampling_rate, // Samples per second
-                    format,
-                    AUDIO_CHANNEL_IN_MONO,
-                    &playBuffSize);
-	recBuffSize = playBuffSize;
-#else
-	//android::AudioRecord::getMinFrameCount((int*)&recBuffSize,
-	//                    ctx->sampling_rate, // Samples per second
-	//					format,
-	//					AUDIO_CHANNEL_IN_MONO);
-						
-    android::AudioSystem::getInputBufferSize(
-                    ctx->sampling_rate, // Samples per second
-                    format,
-                    AUDIO_CHANNEL_IN_MONO,
-                    &recBuffSize);
-						
-	android::AudioTrack::getMinFrameCount((int*)&playBuffSize,
-						AUDIO_STREAM_VOICE_CALL,
-	                    ctx->sampling_rate); // Samples per second
-	recBuffSize	<<= 1; // Convert to bytes
-	recBuffSize <<= 1; // Convert to bytes
-	while (recBuffSize < frame_size)  recBuffSize <<= 1;
-	while (playBuffSize < frame_size) playBuffSize <<= 1;
 #endif
 
-    // We use 2* size of input/output buffer for ping pong use of record/playback buffers.
-    playNotifyBuffSize = playBuffSize;
-	playBuffSize <<= 1;
-	recNotifyBuffSize = recBuffSize;
-    recBuffSize <<= 1;
-	ALOGD("play bufsz: %d, record bufsz: %d",playNotifyBuffSize,recNotifyBuffSize);
-	
     // Create audio record channel
     ctx->rec_strm = new android::AudioRecord();
     if(!ctx->rec_strm) {
 		ALOGE("fail to create audio record");
+		goto error;
+    }
+	
+    // Create audio playback channel
+    ctx->play_strm = new android::AudioTrack();
+    if(!ctx->play_strm) {
+		ALOGE("Failed to create AudioTrack");
 		goto error;
     }
 
@@ -385,13 +546,6 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
 
     if(((android::AudioRecord*)ctx->rec_strm)->initCheck() != android::NO_ERROR) {
 		ALOGE("fail to check audio record : buffer size is : %d, error code : %d", recBuffSize, ((android::AudioRecord*)ctx->rec_strm)->initCheck() );
-		goto error;
-    }
-
-    // Create audio playback channel
-    ctx->play_strm = new android::AudioTrack();
-    if(!ctx->play_strm) {
-		ALOGE("Failed to create AudioTrack");
 		goto error;
     }
 
@@ -446,8 +600,13 @@ error:
 		AudioQueue_end(&ctx->play_q);
         if (ctx->play_strm) delete ((android::AudioTrack*)ctx->play_strm);
         if (ctx->rec_strm) delete ((android::AudioRecord*)ctx->rec_strm);
+#ifdef CHECK_MEM_OVERRUN
+        if (ctx->play_buf) free(((int*)ctx->play_buf)-1);
+        if (ctx->rec_buf) free(((int*)ctx->rec_buf)-1);
+#else
         if (ctx->play_buf) free(ctx->play_buf);
         if (ctx->rec_buf) free(ctx->rec_buf);
+#endif
         if (ctx->fd) close(ctx->fd);
         return -1;
 	}
@@ -468,7 +627,7 @@ int gsm_audio_tunnel_mute(struct GsmAudioTunnel *ctx, int muteit)
 /* API: query if tunnel is running */
 int gsm_audio_tunnel_running(struct GsmAudioTunnel *ctx)
 {
-	if (AudioQueue_isrunning(&ctx->rec_q) && 
+	if (AudioQueue_isrunning(&ctx->rec_q) || 
 		AudioQueue_isrunning(&ctx->play_q))
         return 1;
 	return 0;
@@ -494,12 +653,13 @@ int gsm_audio_tunnel_stop(struct GsmAudioTunnel *ctx)
 		++i){
         usleep(100000);
 	}
-	 // After all sleep for 0.1 seconds since android device can be slow
-    usleep(100000);
+	// After all sleep for 0.2 seconds since android device can be slow
+    usleep(200000);
 	ALOGD("Android audio threads are idle");
 
 	if (ctx->rec_strm) { ((android::AudioRecord*)ctx->rec_strm)->stop(); }
     if (ctx->play_strm) { ((android::AudioTrack*)ctx->play_strm)->stop(); }
+	usleep(200000);
 	ALOGD("Stopped android audio streaming");
 	
 	pthread_join(ctx->modem_t,NULL);
@@ -515,8 +675,13 @@ int gsm_audio_tunnel_stop(struct GsmAudioTunnel *ctx)
 
 	if (ctx->play_strm) delete ((android::AudioTrack*)ctx->play_strm);
 	if (ctx->rec_strm) delete ((android::AudioRecord*)ctx->rec_strm);
+#ifdef CHECK_MEM_OVERRUN
+	if (ctx->play_buf) free(((int*)ctx->play_buf)-1);
+	if (ctx->rec_buf) free(((int*)ctx->rec_buf)-1);
+#else
 	if (ctx->play_buf) free(ctx->play_buf);
 	if (ctx->rec_buf) free(ctx->rec_buf);
+#endif
 	if (ctx->fd) close(ctx->fd);
 	
     memset(ctx,0,sizeof(struct GsmAudioTunnel));

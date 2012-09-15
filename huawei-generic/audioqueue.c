@@ -10,11 +10,10 @@
 #define f_div(a,b) 	((((long long)(a)) << 28) / (b))
 #define f_fract(a) 	((a) & ((1<<28)-1))
 #define f_intp(a)  	((a) >> 28)
-#define f_fromint(a)((a) << 28)
-#define ASRC_F_ONE 	(1<<28)
+#define F_ONE 		(1<<28)
+#define F_NBR(x)	((int)((1<<28) * (x)))
 
-#define TOBEREADY_COUNT 10 /* count of read/writes to start smooth filtering of sample time. Before it, we just use averaging */
-
+//#define CHECK_MEM_OVERRUN
 #define  AUDIOQUEUE_DEBUG 0
 #if AUDIOQUEUE_DEBUG
 #  define  D(...)   ALOGD(__VA_ARGS__)
@@ -46,23 +45,42 @@
 	  n <= end ? n : end+1;}) 
 
 
+	  
 // Init the audio queue
 int AudioQueue_init(struct AudioQueue* ctx,unsigned int p2maxsamples, unsigned int sample_sz)
 {
 	unsigned int maxsamples = 1U << p2maxsamples;
-	memset(ctx,0,sizeof(struct AudioQueue));
+	memset(ctx,0,sizeof(*ctx));
 	
 	ctx->size = maxsamples;
+	ctx->low  = maxsamples / 4;       // 1/4 or less means low
+	ctx->high = (maxsamples * 3) / 4; // 3/4 or more means high
 	ctx->sample_sz = sample_sz;
 	
 	/* Linear resampler */
-	ctx->ratio = ASRC_F_ONE;
+	ctx->ratio = F_ONE;
 	
-	ctx->data = malloc(maxsamples * sample_sz);
-
+	ALOGD("[%p] Initializing audio queue: size: %d, low: %d, high: %d, sample_sz: %d",ctx,ctx->size,ctx->low,ctx->high,ctx->sample_sz);
+	
+#ifdef CHECK_MEM_OVERRUN
+	ctx->data = malloc(8 + maxsamples * sample_sz);
 	if (!ctx->data) {
+		ALOGE("{%p} Failed to allocate %d memory",ctx, 8 + maxsamples * sample_sz);
 		return -1;
 	}
+	ctx->data = (int*)ctx->data + 1;
+	((int*)ctx->data)[-1                           ] = 0x1A2B6C7D;
+	((int*)ctx->data)[(ctx->size*ctx->sample_sz)>>2] = 0xD7C6B2A1;
+#else
+	ctx->data = malloc(maxsamples * sample_sz);
+	if (!ctx->data) {
+		ALOGE("{%p} Failed to allocate %d memory",ctx, maxsamples * sample_sz);
+		return -1;
+	}
+#endif
+	
+	// Init audio AGC
+	agc_init(&ctx->agc,31000);
 	
 	ctx->running = 1;
 	
@@ -80,7 +98,7 @@ int AudioQueue_add(struct AudioQueue* ctx, void* data,unsigned int samples)
 	
 	// If exited, avoid adding
 	if (!ctx->running)
-		return -1;
+		return 0;
 		
 	D("add[%p]: begin: Store %d samples",ctx,samples);
 	
@@ -95,18 +113,7 @@ int AudioQueue_add(struct AudioQueue* ctx, void* data,unsigned int samples)
 		
 		if (rem == 0) {
 			/* not enough data... Ignore the part we can't store */			
-			unsigned int ratio = ctx->ratio;
-		
-			// Adjust ratio to avoid this the next time 
-			ratio += ratio/200;
-		
-			// Limit to sensible values
-			if (ratio > (ASRC_F_ONE + (ASRC_F_ONE / 20))) {
-				ratio = (ASRC_F_ONE + (ASRC_F_ONE / 20));
-			}
-			ctx->ratio = ratio;
-		
-			D("add[%p]: Not enough space on queue... Partially dropping packet, new ratio: %u",ctx,ratio);
+			D("add[%p]: Not enough space on queue...",ctx);
 			break; 
 			
 		} else {
@@ -125,6 +132,31 @@ int AudioQueue_add(struct AudioQueue* ctx, void* data,unsigned int samples)
 	};
 	
 	D("add[%p]: end: Stored %d samples, size %d, rd:%d, wr:%d",ctx,samples - samples_todo,ctx->size, ctx->rd_pos, ctx->wr_pos);
+
+	// Adjust ratio if queue is getting full, to keep fullness under control
+	if (CIRC_CNT(ctx->wr_pos,ctx->rd_pos,ctx->size) > ctx->high) {
+		unsigned int ratio = ctx->ratio;
+	
+		// Adjust ratio to avoid this the next time 
+		ratio += ratio/200;
+	
+		// Limit to sensible values
+		if (ratio > F_NBR(1.05)) {
+			ratio = F_NBR(1.05);
+		}
+		ctx->ratio = ratio;
+		D("add[%p]: Adjusting ratio to keep queue 3/4 full: New ratio: %u",ctx, ratio);
+	}
+
+#ifdef CHECK_MEM_OVERRUN
+	if (((int*)ctx->data)[-1                      ] != 0x1A2B6C7D) {
+		ALOGE("add[%p] Memory corruption at start: Found: %08x",ctx, ((int*)ctx->data)[-1                      ]);
+	}
+	
+	if (((int*)ctx->data)[(ctx->size*ctx->sample_sz)>>2] != 0xD7C6B2A1) {
+		ALOGE("add[%p] Memory corruption at end: Found: %08x",ctx, ((int*)ctx->data)[ctx->size*ctx->sample_sz]);
+	}
+#endif
 	
 	// Return the count of stored samples
 	return samples - samples_todo;
@@ -133,10 +165,11 @@ int AudioQueue_add(struct AudioQueue* ctx, void* data,unsigned int samples)
 int AudioQueue_get(struct AudioQueue* ctx, void* data,unsigned int samples)
 {
 	unsigned int samples_todo = samples;
+	void* pdata = data;
 
 	// If exited, avoid adding
 	if (!ctx->running)
-		return -1;
+		return 0;
 		
 	D("get[%p]: begin: Read of %d samples",ctx,samples);
 		
@@ -144,7 +177,7 @@ int AudioQueue_get(struct AudioQueue* ctx, void* data,unsigned int samples)
 	while (ctx->running && samples_todo) {
 	
 		// Read the first free position
-		unsigned int rd_endni = ctx->wr_pos;
+		int av = CIRC_CNT(ctx->wr_pos,ctx->rd_pos,ctx->size);
 		unsigned int step = ctx->step, mask = ctx->size-1;
 		unsigned int rd_pos = ctx->rd_pos;
 		
@@ -154,77 +187,61 @@ int AudioQueue_get(struct AudioQueue* ctx, void* data,unsigned int samples)
 		if (ctx->sample_sz == 2 ) {
 			
 			short const *psrc = ctx->data;
-			short *pdst = (short*)data;
-			const short *pdstendni = (short*)data + samples_todo;
+			short *pdst = (short*)pdata;
 	
 			/* We use the current one and next one samples */
-			while (pdst != pdstendni) {
-				unsigned int ipart = f_intp(step);
-
-				// If not enough data, break now
-				if (((rd_pos + ipart + 1) & mask) == rd_endni ||
-					((rd_pos + ipart    ) & mask) == rd_endni) 
-					break;
-				
+			while (samples_todo) {
+				int ipart = f_intp(step);
 				rd_pos  = (rd_pos + ipart) & mask;
+				av 	   -= ipart;
 				step    = f_fract(step);
 
+				// If not enough data, break now
+				if (av < 2) 
+					break;
+				
 				*pdst++ = psrc[rd_pos] + f_mul(psrc[(rd_pos+1) & mask] - psrc[rd_pos], step);
-
+				samples_todo--;
 				step   += ctx->ratio;
+				
+				// Update buffer pointers and linear resampler step
+				ctx->step = step;
+				ctx->rd_pos = rd_pos;
 			}
-			samples_todo -= pdst - (short*)data;
-			data = pdst;
+			pdata = pdst;
 			
 		} else {
 			
 			unsigned char const *psrc = ctx->data;
-			unsigned char *pdst = (unsigned char*)data;
-			const unsigned char *pdstendni = (unsigned char*)data + samples_todo;
+			unsigned char *pdst = (unsigned char*)pdata;
 	
 			/* We use the current one and next one samples */
-			while (pdst != pdstendni) {
-				unsigned int ipart = f_intp(step);
-
-				// If not enough data, break now
-				if (((rd_pos + ipart + 1) & mask) == rd_endni ||
-					((rd_pos + ipart    ) & mask) == rd_endni) 
-					break;
-				
+			while (samples_todo) {
+				int ipart = f_intp(step);
 				rd_pos  = (rd_pos + ipart) & mask;
+				av 	   -= ipart;
 				step    = f_fract(step);
 
-				*pdst++ = psrc[rd_pos] + f_mul(psrc[(rd_pos+1) & mask] - psrc[rd_pos], step);
+				// If not enough data, break now
+				if (av < 2) 
+					break;
 
+				*pdst++ = psrc[rd_pos] + f_mul(psrc[(rd_pos+1) & mask] - psrc[rd_pos], step);
+				samples_todo--;
 				step   += ctx->ratio;
+				
+				// Update buffer pointers and linear resampler step
+				ctx->step = step;
+				ctx->rd_pos = rd_pos;
 			}
-			samples_todo -= pdst - (unsigned char*)data;
-			data = pdst;
-	
+			pdata = pdst;
 		}
 		
-		// Update buffer pointers and linear resampler step
-		ctx->step = step;
-		ctx->rd_pos = rd_pos;
-		
 		D("get[%p]: [2] samples_todo: %u, rd: %u, wr: %u, sz: %u",ctx, samples_todo, ctx->rd_pos, ctx->wr_pos, ctx->size);			
-		
 		if (samples_todo) {
 		
-			// No more samples to provide. Adjust ratio so this never happens again 
-			unsigned int ratio = ctx->ratio;
-			ratio -= ratio / 200;
-			
-			// Limit to sensible values
-			if (ratio < (ASRC_F_ONE - (ASRC_F_ONE / 20))) {
-				ratio = (ASRC_F_ONE - (ASRC_F_ONE / 20));
-			}
-			ctx->ratio = ratio;
-			
-			D("get[%p]: Not enough data on queue... Partially returning silence, new ratio: %u",ctx,ratio);		
-
-			// Complete with silence
-			memset(data,0,samples_todo * ctx->sample_sz);
+			// No more samples to provide....
+			D("get[%p]: Not enough data on queue...",ctx);		
 
 			// Return what we have...
 			break;
@@ -232,7 +249,40 @@ int AudioQueue_get(struct AudioQueue* ctx, void* data,unsigned int samples)
 	};
 
 	D("get[%p]: end: got %d samples, total: %d, rd:%d, wr:%d",ctx, samples - samples_todo, ctx->size,ctx->rd_pos, ctx->wr_pos);
+
+	// Adjust ratio if queue is getting empty, to keep fullness under control
+	if (CIRC_CNT(ctx->wr_pos,ctx->rd_pos,ctx->size) < ctx->low) {
 	
+		unsigned int ratio = ctx->ratio;
+		ratio -= ratio / 200;
+	
+		// Limit to sensible values
+		if (ratio < F_NBR(0.95)) {
+			ratio = F_NBR(0.95);
+		}
+		ctx->ratio = ratio;
+		
+		D("get[%p]: Adjusting rate to keep queue at least 1/4 full: New ratio: %u",ctx,ratio);
+	}
+
+	// Apply AGC to the samples
+	if (ctx->sample_sz == 2 ) {
+		agc_process_16bit(&ctx->agc,(short*) data, samples - samples_todo);
+	} else {
+		agc_process_8bit(&ctx->agc,(unsigned char*) data, samples - samples_todo);
+	}
+	
+#ifdef CHECK_MEM_OVERRUN
+	if (((int*)ctx->data)[-1                      ] != 0x1A2B6C7D) {
+		ALOGE("get[%p] Memory corruption at start: Found: %08x",ctx, ((int*)ctx->data)[-1                      ]);
+	}
+	
+	if (((int*)ctx->data)[(ctx->size*ctx->sample_sz)>>2] != 0xD7C6B2A1) {
+		ALOGE("get[%p] Memory corruption at end: Found: %08x",ctx, ((int*)ctx->data)[ctx->size*ctx->sample_sz]);
+	}
+#endif
+
+
 	// Return the count of read samples
 	return samples - samples_todo;
 }
@@ -250,7 +300,12 @@ int AudioQueue_end(struct AudioQueue* ctx)
 	// Some delay to let add and get end...
 	sleep(1);
 	
+#ifdef CHECK_MEM_OVERRUN
+	free(((int*)ctx->data)-1);
+#else
 	free(ctx->data);
+#endif
+
 	memset(ctx,0,sizeof(struct AudioQueue));
 	return 0;
 }
