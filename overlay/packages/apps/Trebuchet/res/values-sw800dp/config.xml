@@ -1,7 +1,5 @@
 <resources>
     <!-- Workspace grid size -->
-    <integer name="config_workspaceRows">7</integer>
-    <integer name="config_workspaceColumns">9</integer>
     <integer name="config_maxWorkspaceRows">7</integer>
     <integer name="config_maxWorkspaceColumns">9</integer>
 
