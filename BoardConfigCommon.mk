@@ -55,9 +55,10 @@ BOARD_HOSTAPD_DRIVER 			:= NL80211
 BOARD_HOSTAPD_PRIVATE_LIB 		:= lib_driver_cmd_wl12xx
 #BOARD_HOSTAPD_PRIVATE_LIB              := lib_driver_cmd_bcmdhd
 BOARD_WLAN_DEVICE 			:= wlan0
-WIFI_DRIVER_MODULE_NAME                 := rt2800usb
-WIFI_DRIVER_MODULE_PATH                 := /system/lib/modules/rt2800usb.ko
+WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
+WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
 WIFI_DRIVER_MODULE_ARG			:= "nohwcrypt=1"
+WIFI_DRIVER_FW_PATH_STA 		:= "/system/vendor/firmware/rt2870.bin"
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH 			:= true
