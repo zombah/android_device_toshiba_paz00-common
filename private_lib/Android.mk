@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-LOCAL_PATH := $(call my-dir)
-
 ifeq ($(WPA_SUPPLICANT_VERSION),VER_0_8_X)
+
+LOCAL_PATH := $(call my-dir)
 
 ifneq ($(BOARD_WPA_SUPPLICANT_DRIVER),)
   CONFIG_DRIVER_$(BOARD_WPA_SUPPLICANT_DRIVER) := y
@@ -44,7 +44,7 @@ WPA_SRC_FILE += driver_cmd_wext.c
 endif
 
 # To force sizeof(enum) = 4
-L_CFLAGS += -mabi=aapcs-linux
+#L_CFLAGS += -mabi=aapcs-linux
 
 ifdef CONFIG_ANDROID_LOG
 L_CFLAGS += -DCONFIG_ANDROID_LOG
@@ -53,7 +53,7 @@ endif
 ########################
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := lib_driver_cmd_bcmdhd
+LOCAL_MODULE := private_lib_driver_cmd
 LOCAL_SHARED_LIBRARIES := libc libcutils
 LOCAL_CFLAGS := $(L_CFLAGS)
 LOCAL_SRC_FILES := $(WPA_SRC_FILE)
