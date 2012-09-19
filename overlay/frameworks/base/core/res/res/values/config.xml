@@ -93,6 +93,9 @@
         <item>"bnep\\d"</item>
     </string-array>
 
+    <!-- Regex of wired ethernet ifaces -->                                                                                                          
+    <string translatable="false" name="config_ethernet_iface_regex">eth\\d</string>
+
     <!-- Array of ConnectivityManager.TYPE_xxxx values allowable for tethering -->
     <!-- Common options are [1, 4] for TYPE_WIFI and TYPE_MOBILE_DUN or
     <!== [0,1,5,7] for TYPE_MOBILE, TYPE_WIFI, TYPE_MOBILE_HIPRI and TYPE_BLUETOOTH -->
@@ -136,6 +139,7 @@
 	<item>"1,1"</item>
 	<item>"0,1"</item>
 	<item>"7,1"</item>
+	<item>"9,1"</item>
     </string-array>
 
 <!-- new unstable settings -->
@@ -215,4 +219,22 @@
     
     <!-- Device has a h/w rotation lock switch -->
     <bool name="config_hasRotationLockSwitch">true</bool>
+
+    <!-- Setting to false will disable CM's IME switcher implementation for tablets -->
+    <bool name="config_show_cmIMESwitcher">false</bool>
+
+    <!-- Boolean indicating whether Softap requires reloading AP firmware -->
+    <bool name="config_wifiApFirmwareReload">false</bool>
+
+    <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->                                                             
+    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
+
+    <!-- Boolean indicating whether the wifi chipset has p2p support -->                                                                             
+    <bool translatable="false" name="config_wifi_p2p_support">false</bool>
+
+    <!-- Boolean indicating whether the wifi chipset supports background scanning mechanism.                                                         
+         This mechanism allows the host to remain in suspend state and the dongle to actively     
+         scan and wake the host when a configured SSID is detected by the dongle. This chipset
+         capability can provide power savings when wifi needs to be always kept on. -->                                                              
+    <bool translatable="false" name="config_wifi_background_scan_support">false</bool>
 </resources>
