@@ -47,18 +47,38 @@ BOARD_HAS_LARGE_FILESYSTEM              := true
 TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
 
 # Wifi related defines
+USES_TI_MAC80211 			:= true
+USES_BCMHD_NL80211			:= false
+ifdef USES_TI_MAC80211
 BOARD_WPA_SUPPLICANT_DRIVER 		:= NL80211
 WPA_SUPPLICANT_VERSION 			:= VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB 	:= lib_driver_cmd_wl12xx
-#BOARD_WPA_SUPPLICANT_PRIVATE_LIB       := lib_driver_cmd_bcmdhd
 BOARD_HOSTAPD_DRIVER 			:= NL80211
 BOARD_HOSTAPD_PRIVATE_LIB 		:= lib_driver_cmd_wl12xx
-#BOARD_HOSTAPD_PRIVATE_LIB              := lib_driver_cmd_bcmdhd
 BOARD_WLAN_DEVICE 			:= wlan0
+BOARD_SOFTAP_DEVICE			:= wlan0
 WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
 WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
 WIFI_DRIVER_MODULE_ARG			:= "nohwcrypt=1"
-WIFI_DRIVER_FW_PATH_STA 		:= "/system/vendor/firmware/rt2870.bin"
+WIFI_DRIVER_FW_PATH_STA			:= "/system/vendor/firmware/rt2870.bin"
+WIFI_DRIVER_FW_PATH_P2P                 := "/system/vendor/firmware/rt2870.bin"
+WIFI_DRIVER_FW_PATH_AP			:= "/system/vendor/firmware/rt2870.bin"
+WIFI_FIRMWARE_LOADER             	:= ""
+COMMON_GLOBAL_CFLAGS += -DUSES_TI_MAC80211
+endif
+
+ifdef USES_BCMHD_NL80211
+BOARD_WPA_SUPPLICANT_DRIVER             := NL80211
+WPA_SUPPLICANT_VERSION                  := VER_0_8_X
+BOARD_WPA_SUPPLICANT_PRIVATE_LIB        := private_lib_driver_cmd
+BOARD_HOSTAPD_DRIVER                    := NL80211
+BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
+WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
+WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
+WIFI_DRIVER_MODULE_ARG                  := "nohwcrypt=1"
+WIFI_DRIVER_FW_PATH_STA                 := "/system/vendor/firmware/rt2870.bin"
+WIFI_FIRMWARE_LOADER                    := ""
+endif
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH 			:= true
