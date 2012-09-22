@@ -47,8 +47,8 @@ BOARD_HAS_LARGE_FILESYSTEM              := true
 TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
 
 # Wifi related defines
-USES_TI_MAC80211 			:= true
-USES_BCMHD_NL80211			:= false
+USES_TI_MAC80211 			:= false
+USES_BCMHD_NL80211			:= true
 ifdef USES_TI_MAC80211
 BOARD_WPA_SUPPLICANT_DRIVER 		:= NL80211
 WPA_SUPPLICANT_VERSION 			:= VER_0_8_X
@@ -77,6 +77,8 @@ WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
 WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
 WIFI_DRIVER_MODULE_ARG                  := "nohwcrypt=1"
 WIFI_DRIVER_FW_PATH_STA                 := "/system/vendor/firmware/rt2870.bin"
+WIFI_DRIVER_FW_PATH_P2P                 := "/system/vendor/firmware/rt2870.bin"
+WIFI_DRIVER_FW_PATH_AP                  := "/system/vendor/firmware/rt2870.bin"
 WIFI_FIRMWARE_LOADER                    := ""
 endif
 
