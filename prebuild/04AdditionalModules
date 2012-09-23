@@ -6,5 +6,7 @@
 insmod /system/lib/modules/asix.ko
 # Sony joysticks support
 insmod /system/lib/modules/hid-sony.ko
+# USB Audio support
+insmod /system/lib/modules/snd-usb-audio.ko
 #
 # Add additional modules here
