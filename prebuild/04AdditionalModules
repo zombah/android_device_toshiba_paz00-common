@@ -1,0 +1,10 @@
+#!/system/bin/sh
+#
+# Load Additional kernel modules
+#
+# Asix usb ethernet devices
+insmod /system/lib/modules/asix.ko
+# Sony joysticks support
+insmod /system/lib/modules/hid-sony.ko
+#
+# Add additional modules here
