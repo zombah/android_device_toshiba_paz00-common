@@ -53,6 +53,8 @@ on fs
     insmod /system/lib/modules/snd-soc-tegra20-das.ko
     insmod /system/lib/modules/snd-soc-tegra20-i2s.ko
     insmod /system/lib/modules/snd-soc-tegra-tdm-pcm.ko
+    insmod /system/lib/modules/snd-soc-spdif.ko
+    insmod /system/lib/modules/snd-soc-tegra20-spdif.ko
     insmod /system/lib/modules/snd-soc-tegra-alc5632.ko
     insmod /system/lib/modules/regmap-i2c.ko
     insmod /system/lib/modules/snd-soc-alc5632.ko
