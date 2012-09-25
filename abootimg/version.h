@@ -1,1 +1,1 @@
-#define VERSION_STR "v0.6"
+#define VERSION_STR "v0.6-ANDROID"
