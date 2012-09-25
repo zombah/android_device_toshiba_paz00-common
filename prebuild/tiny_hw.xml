@@ -79,4 +79,7 @@
   </path>
 </device>
 
+<device name="hdmi" alsa_device="1">
+</device>
+
 </tinyhal>
