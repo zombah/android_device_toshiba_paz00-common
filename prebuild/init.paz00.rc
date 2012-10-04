@@ -248,46 +248,9 @@ service iprenew_bnep0 /system/bin/dhcpcd -n
 #    user root
 #    group root
 
-#Prepare TF service
-service tf_daemon /system/bin/tf_daemon -storageDir /data/tf
-    disabled
-    class main
-    user root
-    group shell
-    oneshot
-
 service hwprops /sbin/hwprops
     disabled
     oneshot
-
-#Create data directory and start service
-on property:tf.enable=y
-    mkdir /data/tf
-    start tf_daemon
-
-# Postboot service
-service picasso_postboot /system/bin/sh /picasso_postboot.sh
-    user root
-    oneshot
-
-on property:init.svc.bootanim=stopped
-    start picasso_postboot
-
-# cmd_server service
-#service cmd_server /system/bin/cmd_server_daemon
-#    class late_start
-#    user root
-
-# Enable tcpdump-service
-#service netdump-service /system/xbin/tcpdump -i any -C 5 -p -s 0 -w /sdcard/netdump.cap
-#    user root
-#    disabled
-
-#on property:net.netdump.enable=1
-#    start netdump-service
-
-#on property:net.netdump.enable=0
-#    stop netdump-service
 
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
