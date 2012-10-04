@@ -68,6 +68,8 @@ on fs
 # install additional modules
     insmod /system/lib/modules/lm90.ko
     insmod /system/lib/modules/tegra_wdt.ko
+# install zram module
+    insmod /system/lib/modules/zram.ko
 
 on post-fs-data
     mkdir /data/misc/wifi 0770 wifi wifi
@@ -319,3 +321,20 @@ on device-removed-/dev/ttyUSB3
                                                                                                    
 on property:init.svc.bootanim=stopped                                                              
     start wwlanselect
+
+# zram service
+service compcache /system/bin/handle_compcache
+    class main
+    user root
+    group root
+    disabled
+
+on property:persist.service.zram=10
+    start compcache
+
+on property:persist.service.zram=18
+    start compcache
+
+on property:persist.service.zram=26
+    start compcache
+
