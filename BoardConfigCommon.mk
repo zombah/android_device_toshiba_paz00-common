@@ -149,4 +149,4 @@ BOARD_USE_SCREENCAP 			:= true
 BOARD_USES_SECURE_SERVICES 		:= true
 
 # Use a smaller subset of system fonts to keep image size lower
-#SMALLER_FONT_FOOTPRINT 			:= true
+SMALLER_FONT_FOOTPRINT 			:= true
