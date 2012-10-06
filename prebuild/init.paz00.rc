@@ -23,7 +23,9 @@ on early-init
     symlink /storage/usbdisk /usbdisk
 
 on fs
+    mount ext4 /dev/block/mmcblk0p3 /system wait rw
     chmod 4755 /system/bin/pppd
+    chmod 4755 /system/bin/abootimg
     mount_all /fstab.ac100
 
 # Basic modules loading below
