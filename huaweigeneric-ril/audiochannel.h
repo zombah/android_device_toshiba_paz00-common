@@ -22,15 +22,22 @@
 #include "echocancel.h"
 #include <pthread.h>
 
+#define LOG_MODEM_AUDIO 0
+
 struct GsmAudioTunnel {
 
     // 3G voice modem
     int fd;                         // Voice data serial port handler
 
+#if LOG_MODEM_AUDIO
+	int logfd;
+#endif
+
     // Common properties
     unsigned int frame_size;        // Frame size
     unsigned int sampling_rate;     // Sampling rate
     unsigned int bits_per_sample;   // Bits per sample. valid values = 16/8
+	unsigned int timeout;			// Maximum wait timeout
 	pthread_t modem_t;				// 3G modem playback/record thread
 	int ismuted;					// If audio record is muted
 	
@@ -50,7 +57,7 @@ struct GsmAudioTunnel {
 	struct echocancel_ctx echo;		// Echo cancellator
 };
 
-#define GSM_AUDIO_CHANNEL_STATIC_INIT { -1, 0,0,0,0,0, 0,0,0,{0} ,0,0,0,{0} }
+#define GSM_AUDIO_CHANNEL_STATIC_INIT { -1, 0,0,0,0,0,0, 0,0,0,{0} ,0,0,0,{0}, {0} }
 
 #ifdef __cplusplus
 extern "C" {

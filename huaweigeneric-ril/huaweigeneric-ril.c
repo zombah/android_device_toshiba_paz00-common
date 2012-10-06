@@ -124,7 +124,7 @@ C = is for?
 
 #define D ALOGI
 
-#define RIL_VERSION_STRING "Huawei-ril 1.0.0.7 (Built on " __DATE__" " __TIME__ ")"
+#define RIL_VERSION_STRING "Huawei-ril 1.0.0.8 (Built on " __DATE__" " __TIME__ ")"
 
 #define timespec_cmp(a, b, op)         \
         ((a).tv_sec == (b).tv_sec    \
@@ -151,6 +151,7 @@ static void onDataCallListChanged(void *param);
 static int killConn(const char * cid);
 static int wait_for_property(const char *name, const char *desired_value, int maxwait, int allowempty);
 static void checkMessageStorageReady(void *p);
+static int pppSupported(void);
 static void onSIMReady(void *p);
 static void pollSIMState(void *param);
 static void checkMessageStorageReady(void *p);
@@ -281,6 +282,12 @@ static void startAudioTunnel(void* param)
 	bits_per_sample = 16;
 	framesize_ms = 20;
 #endif
+	
+	/* Increase volume to maximum. Some modems do not set the volume if not
+	  actually changing values.... And some of them do not understand the 
+	  command at all. Try to switch volume to maximum - DerArtem */
+	err = at_send_command("AT+CLVL=1"); /* Lo volume */
+	err = at_send_command("AT+CLVL=5"); /* Maximum volume */
 	
     /* Start the audio channel */
     err = gsm_audio_tunnel_start(&sAudioChannel,sAudioDevice,
@@ -1191,7 +1198,8 @@ static int dial_at_modem(const char* cmd, int skipanswerwait)
 static int killConn(const char* cididx)
 {
 	/* Leave NDIS mode */
-    at_send_command("AT^NDISDUP=%s,0",cididx);
+	if (!pppSupported())
+		at_send_command("AT^NDISDUP=%s,0",cididx);
 	
 	/* Leave Data context mode */
     at_send_command("AT+CGACT=0,%s", cididx);
@@ -1931,6 +1939,27 @@ static void requestOrSendPDPContextList(RIL_Token *t)
     at_response_free(atResponse);
     atResponse = NULL;
 
+	/* Make sure interface is UP and running. If not, invalidate datacall to 
+	   force Android to reconnect - This will happen when resuming from suspend, as pppd
+	   has probably ended as a consequence of the USB bus being suspended and the terminal
+	   disappearing. So, that is why we have this check here. Not only the modem has to
+	   report an active connection, also linux has to export an active net interface !*/
+	if (ifc_init() >= 0) {
+		in_addr_t addr;
+		in_addr_t mask;
+		unsigned flags = 0;
+		ifc_get_info( responses[i].ifname, &addr, &mask, &flags);
+		if (!(flags & IFF_UP)) {
+			for (i = 0; i < n; i++) {
+				if (responses[i].active) {
+					ALOGD("DataCall cid:%d forced to inactive, as associated interface [%s] is DOWN", responses[i].cid, responses[i].ifname );
+					responses[i].active = 0;
+				}
+			}
+		}
+		ifc_close();
+	}
+	
     if (t != NULL)
         RIL_onRequestComplete(*t, RIL_E_SUCCESS, responses,
                 n * sizeof(RIL_Data_Call_Response_v6));
@@ -2276,6 +2305,12 @@ static void onNewSmsOnSIM(const char *s)
     if (err < 0)
         goto error;
 
+	/* Huawei modems use a 0-based message slot index, but the SIM record is 1-based. 
+	   We will translate Huawei indices to Record indices, to make the Android RIL 
+	   able to read SMS stored in SIM using SimIo with the same indices as the Sms 
+	   delete command and NewSmsOnSim index */
+	index += 1;
+		
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM,
                               &index, sizeof(int *));
 
@@ -2484,8 +2519,19 @@ error:
 static void requestDeleteSmsOnSim(void *data, size_t datalen, RIL_Token t)
 {
     int err;
-
-    err = at_send_command("AT+CMGD=%d", ((int *) data)[0]);
+	
+	/* Huawei modems use a 0-based message slot index, but the SIM record is 1-based. 
+	   We will translate Huawei indices to Record indices, to make the Android RIL 
+	   able to read SMS stored in SIM using SimIo with the same indices as the Sms 
+	   delete command and NewSmsOnSim index */
+	int idx = ((int *) data)[0] - 1;
+	if (idx < 0) {
+		ALOGE("DeleteSmsOnSim: Invalid index! (%d)",idx);
+		RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		return;
+	}
+	
+    err = at_send_command("AT+CMGD=%d", idx);
     if (err != AT_NOERROR)
         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
     else
@@ -2905,6 +2951,114 @@ error:
  *
  * Reverse Engineered from Kuawei generic RIL *
  */
+ 
+typedef struct _tagSW1SW2{
+	unsigned char mask[2];
+	unsigned char sw[2];
+	char *text; 
+} SW1SW2;
+
+static const SW1SW2 sim_answ[]=
+{
+	  /* Response to commands which are correctly executed */
+      { { 0xff, 0xff }, { 0x90, 0x00 } , "Ok" },
+      { { 0xff, 0x00 }, { 0x9f, 0x00 } , "%d response bytes available" },
+	  /* Memory management */
+	  { { 0xff, 0x00 }, { 0x92, 0x00 } , "Update successful but after using an internal retry of %d times" },
+	  { { 0xff, 0xff }, { 0x92, 0x40 } , "memory problem" },
+	  /* Referencing management */
+	  { { 0xff, 0xff }, { 0x94, 0x00 } , "no EF selected" },
+	  { { 0xff, 0xff }, { 0x94, 0x02 } , "out of range (invalid address)" },
+	  { { 0xff, 0xff }, { 0x94, 0x04 } , "file ID or pattern not found" },
+	  { { 0xff, 0xff }, { 0x94, 0x08 } , "file is inconsistent with the command" },
+	  /* Security management */
+	  { { 0xff, 0xff }, { 0x98, 0x02 } , "no CHV initialised" },
+	  { { 0xff, 0xff }, { 0x98, 0x04 } , "access condition not fulfilled,authentication failed at least one attempt left" },
+	  { { 0xff, 0xff }, { 0x98, 0x08 } , "in contradiction with CHV status" },
+	  { { 0xff, 0xff }, { 0x98, 0x10 } , "in contradiction with invalidation stats" },
+	  { { 0xff, 0xff }, { 0x98, 0x40 } , "unsuccessful CHV verification,no attempt left. CHV blocked" },
+	  { { 0xff, 0xff }, { 0x98, 0x50 } , "increase cannot be performed,Max value reached" },
+	  
+      { { 0xff, 0x00 }, { 0x61, 0x00 } , "%d response bytes available" },
+
+      { { 0xff, 0xff }, { 0x62, 0x81 } , "returned data may be corrupt" },
+      { { 0xff, 0xff }, { 0x62, 0x82 } , "EOF reached prematurely" },
+      { { 0xff, 0xff }, { 0x62, 0x83 } , "selected file invalid" },
+      { { 0xff, 0xff }, { 0x62, 0x84 } , "FCI not formated" },
+      { { 0xff, 0x00 }, { 0x62, 0x00 } , "nvmem unchanged" },
+
+      { { 0xff, 0x00 }, { 0x63, 0x00 } , "nvmem changed" },
+      { { 0xff, 0x00 }, { 0x63, 0x81 } , "file filled up by last write" },
+      { { 0xff, 0xf0 }, { 0x63, 0xc0 } , "Counter=%1.1X" },
+
+      { { 0xff, 0xff }, { 0x64, 0x00 } , "nvmem unchanged" },
+      { { 0xff, 0x00 }, { 0x64, 0x00 } , "nvmem unchanged - RFU" },
+
+      { { 0xff, 0xff }, { 0x65, 0x00 } , "nvmem changed" },
+      { { 0xff, 0xff }, { 0x65, 0x81 } , "nvmem changed - memory failure" },
+      { { 0xff, 0x00 }, { 0x65, 0x00 } , "nvmem changed - unknown?" },
+
+      { { 0xff, 0x00 }, { 0x66, 0x00 } , "security related %d" },
+
+      { { 0xff, 0xff }, { 0x67, 0x00 } , "wrong length" },
+      { { 0xff, 0x00 }, { 0x67, 0x00 } , "wrong length - %d expected" },
+
+      { { 0xff, 0xff }, { 0x68, 0x81 } , "wrong cla - logical channel not supported" },
+      { { 0xff, 0xff }, { 0x68, 0x82 } , "wrong cla - secure messaging not supported" },
+      { { 0xff, 0x00 }, { 0x68, 0x00 } , "cla not supported" },
+
+      { { 0xff, 0xff }, { 0x69, 0x81 } , "command incompatible with file structure" },
+      { { 0xff, 0xff }, { 0x69, 0x82 } , "security status not satisfied" },
+      { { 0xff, 0xff }, { 0x69, 0x83 } , "authentication method blocked" },
+      { { 0xff, 0xff }, { 0x69, 0x84 } , "referenced data invalid" },
+      { { 0xff, 0xff }, { 0x69, 0x85 } , "conditions of use not satisfied" },
+      { { 0xff, 0xff }, { 0x69, 0x86 } , "command not allowed - no current EF" },
+      { { 0xff, 0xff }, { 0x69, 0x87 } , "expected SM data objects missing" },
+      { { 0xff, 0xff }, { 0x69, 0x88 } , "SM data objects incorrect" },
+      { { 0xff, 0x00 }, { 0x69, 0x00 } , "command not allowed" },
+
+      { { 0xff, 0xff }, { 0x6a, 0x80 } , "P1-P2: incorrect parameters in data field" },
+      { { 0xff, 0xff }, { 0x6a, 0x81 } , "P1-P2: function not supported" },
+      { { 0xff, 0xff }, { 0x6a, 0x82 } , "P1-P2: file not found" },
+      { { 0xff, 0xff }, { 0x6a, 0x83 } , "P1-P2: record not found" },
+      { { 0xff, 0xff }, { 0x6a, 0x84 } , "P1-P2: not enough memory space in file" },
+      { { 0xff, 0xff }, { 0x6a, 0x85 } , "P1-P2: Lc inconsistent with TLV" },
+      { { 0xff, 0xff }, { 0x6a, 0x86 } , "P1-P2 incorrect" },
+      { { 0xff, 0xff }, { 0x6a, 0x87 } , "P1-P2 inconsistent with Lc" },
+      { { 0xff, 0xff }, { 0x6a, 0x88 } , "Referenced data not found" },
+      { { 0xff, 0x00 }, { 0x6a, 0x00 } , "P1-P2 invalid" },
+
+      { { 0xff, 0x00 }, { 0x6b, 0x00 } , "P1-P2 invalid" },
+
+      { { 0xff, 0x00 }, { 0x6c, 0x00 } , "wrong length -  %d expected" },
+
+      { { 0xff, 0x00 }, { 0x6d, 0x00 } , "INS code not supported or invalid" },
+      
+      { { 0xff, 0x00 }, { 0x6e, 0x00 } , "CLA %02X not supported" },
+
+      { { 0xff, 0x00 }, { 0x6f, 0x00 } , "no precise diagnosis" },
+
+      { { 0x00, 0x00 }, { 0x00, 0x00 } , "Unknown response" }
+};
+ 
+/* Interpret and print SIM_IO command result */
+static void print_simansw(unsigned char sw1, unsigned char sw2)
+{
+	int j,i;
+	
+	ALOGD("sw1: 0x%02x, sw2: 0x%02x",sw1,sw2);	
+	for(j = 0; j < sizeof(sim_answ)/sizeof(sim_answ[0]); j++) {
+	
+		if ((sw1 & sim_answ[j].mask[0]) == sim_answ[j].sw[0] &&
+			(sw2 & sim_answ[j].mask[1]) == sim_answ[j].sw[1]) {
+			ALOGD(sim_answ[j].text,sw2);
+			return;
+		}
+	}		
+	
+	ALOGD("Unknown error");
+}
+
 static unsigned int hex2int(char dig)
 {
 	if (dig >= '0' && dig <= '9')
@@ -2984,6 +3138,9 @@ static void requestSIM_IO(void *data, size_t datalen, RIL_Token t)
 		err = at_tok_nextstr(&line, &(sr.simResponse));
 		if (err < 0) goto error;
 	}
+	
+	/* Interpret and print results as a debugging aid */
+	print_simansw(sr.sw1,sr.sw2);
 
 	/* If dealing with a USIM card ... */
 	if (p_args->command == 0xC0 &&
@@ -3554,13 +3711,18 @@ static void requestEnterSimPin(void *data, size_t datalen, RIL_Token t, int requ
             goto error;
         }
     } else {
-        /*
-         * Got OK, return success and wait for *EPEV to trigger poll
-         * of SIM state.
-         */
+        /* Got OK, return success. */
 
         num_retries = 1;
         RIL_onRequestComplete(t, RIL_E_SUCCESS, &num_retries, sizeof(int *));
+		
+		/* Make sure we get notifications for network registeration
+		   of both voice and data now */
+		at_send_command("AT+CREG=2");
+		at_send_command("AT+CGREG=2");
+
+		/* Notify that SIM is ready */
+		setRadioState(RADIO_STATE_SIM_READY);
     }
     return;
 error:
@@ -4470,7 +4632,6 @@ error:
     goto finally;
 }
 
-
 /**
  * RIL_REQUEST_DATA_REGISTRATION_STATE
  *
@@ -4716,17 +4877,40 @@ static void unsolicitedNitzTime(const char * s)
 {
     int err;
     char * response = NULL;
-    char * line = NULL;
-    char * p = NULL;
+    char * dt = NULL;
+	char * tm = NULL;
     char * tz = NULL; /* Timezone */
     static char sNITZtime[64] = {0};
 
-    line = strdup(s);
+    char * line = strdup(s);
 
     /* Higher layers expect a NITZ string in this format:
      *  08/10/28,19:08:37-20,1 (yy/mm/dd,hh:mm:ss(+/-)tz,dst)
      */
+	if (strStartsWith(s,"^NWTIME:")) {
+		/* Network time, as reported by Huawei modems:
+		   ^NWTIME: 12/09/22,08:33:59+8,01 */
+		
+        /* We got the network time, now assemble the response and send to upper layers */
+        at_tok_start(&line);
 
+        err = at_tok_nextstr(&line, &dt);
+        if (err < 0) goto error;
+
+        err = at_tok_nextstr(&line, &tm);
+        if (err < 0) goto error;
+
+        err = at_tok_nextstr(&line, &tz);
+        if (err < 0) goto error;
+
+        asprintf(&response, "%s,%s,%s", dt ,tm ,tz);
+        RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, response, strlen(response));
+        free(response);
+
+        free(line);
+        return;
+		
+	} else	 
     if (strStartsWith(s,"+CTZV:")){
 
         /* Get Time and Timezone data and store in static variable.
@@ -5380,8 +5564,32 @@ static void requestGetIMSI(RIL_Token t)
     at_response_free(atResponse);
 }
 
+/**
+ * RIL_REQUEST_GET_IMEI
+ *
+ * Get the device IMEI, which should be 15 decimal digits.
+ */
+static void requestGetIMEI(RIL_Token t)
+{
+    ATResponse *atResponse = NULL;
+    int err;
 
+    /* IMEI */
+    err = at_send_command_numeric("AT+CGSN", &atResponse);
 
+    if (err != AT_NOERROR)
+        goto error;
+
+    RIL_onRequestComplete(t, RIL_E_SUCCESS, atResponse->p_intermediates->line, sizeof(char *));
+
+    at_response_free(atResponse);
+    return;
+
+error:
+    RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+    at_response_free(atResponse);
+}
+	 
 /**
  * RIL_REQUEST_GET_IMEISV
  *
@@ -5392,9 +5600,8 @@ static void requestGetIMEISV(RIL_Token t)
     RIL_onRequestComplete(t, RIL_E_SUCCESS, (void*)"01", sizeof(char *));
 }
 
-
-
-/* RIL_REQUEST_DEVICE_IDENTITY
+/**
+ * RIL_REQUEST_DEVICE_IDENTITY
  *
  * Request the device ESN / MEID / IMEI / IMEISV.
  *
@@ -6240,7 +6447,7 @@ static void requestSendUSSD(void *data, size_t datalen, RIL_Token t)
      */
 	
 	/* Convert to GSM8 from UTF8 */
-	int utf8len = strlen(ussdRequest);
+	int utf8len = strlen((const char*)ussdRequest);
 	int gsmbytes = utf8_to_gsm8(ussdRequest, utf8len, NULL);
 	bytes_t gsm8 = malloc(gsmbytes + 1);
 	utf8_to_gsm8(ussdRequest, utf8len, gsm8);
@@ -6891,7 +7098,7 @@ static void processRequest (int request, void *data, size_t datalen, RIL_Token t
             requestGetIMSI(t);
             break;
         case RIL_REQUEST_GET_IMEI:
-            requestGetIMEISV(t);
+            requestGetIMEI(t);
             break;
         case RIL_REQUEST_GET_IMEISV:
             requestGetIMEISV(t);
@@ -7237,7 +7444,9 @@ static void onUnsolicited (const char *s, const char *sms_pdu)
     if (strStartsWith(s, "%CTZV:")
             || strStartsWith(s,"+CTZV:")
             || strStartsWith(s,"+CTZDST:")
-            || strStartsWith(s,"+HTCCTZV:")) {
+            || strStartsWith(s,"+HTCCTZV:")
+			|| strStartsWith(s,"^NWTIME:")
+			) {
         unsolicitedNitzTime(s);
 	
 	/* Call status/start/end indicator */
@@ -7307,7 +7516,8 @@ static void onUnsolicited (const char *s, const char *sms_pdu)
         onNewSms(sms_pdu);
     } else if (strStartsWith(s, "+CBM:")) {
         onNewBroadcastSms(sms_pdu);
-    } else if (strStartsWith(s, "+CMTI:")) {
+    } else if (strStartsWith(s, "+CMTI:")
+			|| strStartsWith(s, "+CDSI:")) {
         onNewSmsOnSIM(s);
     } else if (strStartsWith(s, "+CDS:")) {
         onNewStatusReport(sms_pdu);
@@ -7321,7 +7531,8 @@ static void onUnsolicited (const char *s, const char *sms_pdu)
     } else if (strStartsWith(s, "+CUSD:")) {
         unsolicitedUSSD(s);
     } else if (strStartsWith(s, "+CIEV: 7") ||
-               strStartsWith(s, "Received SMS:")) {
+               strStartsWith(s, "Received SMS:") ||
+			   strStartsWith(s, "^SMMEMFULL") ) {
         onNewSmsIndication();
     }
 }
@@ -7375,7 +7586,7 @@ static void onATTimeout()
 static void usage(char *s)
 {
 #ifdef RIL_SHLIB
-    fprintf(stderr, "htcgeneric-ril requires: -p <tcp port> or -d /dev/tty_device\n");
+    fprintf(stderr, "generic-ril requires: -p <tcp port> or -d /dev/tty_device\n");
 #else
     fprintf(stderr, "usage: %s [-p <tcp port>] [-d /dev/tty_device] [-v /dev/tty_device]\n", s);
     exit(-1);

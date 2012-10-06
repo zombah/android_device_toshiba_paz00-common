@@ -71,7 +71,6 @@ static void dummyResponse(void);
 #define responseSMS dummyResponse
 #define responseString dummyResponse
 #define responseStrings dummyResponse
-#define responseStringsNetworks dummyResponse
 #define responseVoid dummyResponse
 
 #define responseSimStatus dummyResponse
@@ -103,7 +102,7 @@ typedef struct CommandInfo {
 
 /* RILD made me do it! */
 static CommandInfo s_commandInfo[] = {
-#include <ril_commands.h>
+#include "ril_commands.h"
 };
 
 static void *dummyDispatch(void *data, size_t datalen)
