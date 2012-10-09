@@ -20,6 +20,7 @@ TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
 
 # Tegra2 specific tweaks
 ARCH_ARM_HAVE_TLS_REGISTER 		:= true
+ARCH_ARM_USE_NON_NEON_MEMCPY 		:= true
 
 # Kernel
 TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
@@ -42,7 +43,6 @@ BOARD_UMS_LUNFILE 			:= "/sys/class/android_usb/android0/f_mass_storage/lun/file
 BOARD_HAS_NO_SELECT_BUTTON              := true
 # Large fonts
 #BOARD_USE_CUSTOM_RECOVERY_FONT 		:= \"roboto_15x24.h\"
-BOARD_USES_MMCUTILS 			:= true
 BOARD_HAS_LARGE_FILESYSTEM              := true
 TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
 
@@ -106,15 +106,15 @@ TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 TARGET_USERIMAGES_USE_EXT4		:= true
 BOARD_BOOTIMAGE_PARTITION_SIZE 		:= 8388608
 BOARD_RECOVERYIMAGE_PARTITION_SIZE 	:= 5242880
-BOARD_SYSTEMIMAGE_PARTITION_SIZE 	:= 314572800
+BOARD_SYSTEMIMAGE_PARTITION_SIZE 	:= 536970912
 BOARD_USERDATAIMAGE_PARTITION_SIZE 	:= 1294991360
-BOARD_FLASH_BLOCK_SIZE 			:= 131072
+BOARD_FLASH_BLOCK_SIZE 			:= 4096
 
 # Disable spase in image creation, otherwise image not mountble and need to be processed with simg2img
-TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
+TARGET_USERIMAGES_SPARSE_EXT_DISABLED 	:= true
 
 # Setting this to avoid boot locks on the system from using the "misc" partition.
-BOARD_HAS_NO_MISC_PARTITION 		:= true
+#BOARD_HAS_NO_MISC_PARTITION 		:= true
 
 # dont build recovery
 #TARGET_NO_RECOVERY 			:= true
@@ -149,4 +149,4 @@ BOARD_USE_SCREENCAP 			:= true
 BOARD_USES_SECURE_SERVICES 		:= true
 
 # Use a smaller subset of system fonts to keep image size lower
-SMALLER_FONT_FOOTPRINT 			:= true
+#SMALLER_FONT_FOOTPRINT 			:= false
