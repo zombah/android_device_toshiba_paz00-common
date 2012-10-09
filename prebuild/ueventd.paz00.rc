@@ -1,9 +1,23 @@
+/dev/nvhost-ctrl 	0666 	root 	root
+/dev/nvhost-display 	0666 	root 	root
+/dev/nvhost-dsi 	0666 	root 	root
+/dev/nvhost-gr2d 	0666 	root 	root
+/dev/nvhost-gr3d 	0666 	root 	root
+/dev/nvhost-isp 	0666 	root 	root
+/dev/nvhost-mpe 	0666 	root 	root
+/dev/nvhost-vi 		0666 	root 	root
+/dev/nvhdcp0 		0666 	system 	system
+/dev/nvhdcp1 		0666 	system 	system
+/dev/timerinfo 		0444 	system 	system
+
 /dev/knvmap             0660    system  system
 /dev/nvmap              0666    system  system
 /dev/tegra_avp          0660    media   media
+/dev/tegra_avpchannel	0660	media	media
 /dev/tegra_rpc          0660    media   media
 /dev/tegra_sema         0660    media   media
 /dev/tegra_mediaserver  0660    media   media
+
 /dev/ov5650             0660    media   camera
 /dev/ov2710             0660    media   camera
 /dev/mt9d115            0600    media   camera
@@ -28,6 +42,9 @@
 /dev/ttyACM*    	0660    radio   system
 /dev/ttyHS*    		0660    radio   system
 /dev/tegra_dc* 		0666 	system system
+
+/dev/rfkill		0660   	root	wifi
+
 /sys/class/rfkill/rfkill0/state 0660 wifi wifi
 /sys/class/rfkill/rfkill0/soft 0660 wifi wifi
 /sys/class/rfkill/rfkill0/type 0660 wifi wifi
