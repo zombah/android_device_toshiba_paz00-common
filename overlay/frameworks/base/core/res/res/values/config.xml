@@ -32,7 +32,7 @@
 	PackageManager.FEATURE_TELEPHONY system feature, which is
 	available on *any* device with a telephony radio, even if the
 	device is data-only. -->
-    <bool name="config_voice_capable">false</bool>
+    <bool name="config_voice_capable">true</bool>
 
     <!-- This device does not allow sms service. -->
     <bool name="config_sms_capable">true</bool>
@@ -57,21 +57,6 @@
     <!-- Indicate whether the SD card is accessible without removing the battery. -->
     <bool name="config_batterySdCardAccessibility">true</bool>
 
-    <!-- Flag indicating whether the surface flinger has limited
-         alpha compositing functionality in hardware. If set, the window
-         manager will disable alpha trasformation in animations where not
-         strictly needed. -->
-    <bool name="config_sf_limitedAlpha">false</bool>
- 
-   <!-- If true, the screen can be rotated via the accelerometer in all 4
-        rotations as the default behavior. -->
-   <bool name="config_allowAllRotations">false</bool>
-
-   <!-- Flag indicating whether the surface flinger is inefficient
-        at performing a blur. Used by parts of the UI to turn off
-        the blur effect where it isn't worth the performance hit. -->
-   <bool name="config_sf_slowBlur">true</bool>
-
     <!-- List of regexpressions describing the interface (if any) that represent tetherable
          USB interfaces. If the device doesn't want to support tething over USB this should
          be empty. An example would be "usb.*" -->
@@ -92,9 +77,6 @@
     <string-array translatable="false" name="config_tether_bluetooth_regexs">
         <item>"bnep\\d"</item>
     </string-array>
-
-    <!-- Regex of wired ethernet ifaces -->                                                                                                          
-    <string translatable="false" name="config_ethernet_iface_regex">eth\\d</string>
 
     <!-- Array of ConnectivityManager.TYPE_xxxx values allowable for tethering -->
     <!-- Common options are [1, 4] for TYPE_WIFI and TYPE_MOBILE_DUN or
@@ -149,9 +131,6 @@
 
     <!-- Package name providing geocoder API support. -->
     <string name="config_geocodeProviderPackageName" translatable="false">@null</string>
-
-     <!-- Diable lockscreen rotation by default -->
-     <bool name="config_enableLockScreenRotation">false</bool>
 
      <!-- The number of degrees to rotate the display when the keyboard is open. -->
      <integer name="config_lidOpenRotation">0</integer>
@@ -213,8 +192,8 @@
     <integer name="config_deviceHardwareKeys">31</integer>
 
     <!-- If a dock provides a lid switch, that lid can be removed. This
-              setting is used to determine, whether lidOpenRotation has to be
-                       applied. -->
+         setting is used to determine, whether lidOpenRotation has to be
+         applied. -->
     <bool name="config_hasRemovableLid">true</bool>
     
     <!-- Device has a h/w rotation lock switch -->
@@ -226,15 +205,28 @@
     <!-- Boolean indicating whether Softap requires reloading AP firmware -->
     <bool name="config_wifiApFirmwareReload">false</bool>
 
-    <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->                                                             
-    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
+    <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->                                    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
 
-    <!-- Boolean indicating whether the wifi chipset has p2p support -->                                                                             
-    <bool translatable="false" name="config_wifi_p2p_support">false</bool>
+    <!-- Boolean indicating whether the wifi chipset has p2p support -->                                                    <bool translatable="false" name="config_wifi_p2p_support">false</bool>
 
-    <!-- Boolean indicating whether the wifi chipset supports background scanning mechanism.                                                         
-         This mechanism allows the host to remain in suspend state and the dongle to actively     
-         scan and wake the host when a configured SSID is detected by the dongle. This chipset
-         capability can provide power savings when wifi needs to be always kept on. -->                                                              
-    <bool translatable="false" name="config_wifi_background_scan_support">false</bool>
+    <!-- Indicate whether closing the lid causes the device to go to sleep and opening
+         it causes the device to wake up.
+         The default is false. -->
+    <bool name="config_lidControlsSleep">true</bool>
+
+    <!-- List of paths to serial ports that are available to the serial manager.
+         for example, /dev/ttyUSB0
+    -->
+    <string-array translatable="false" name="config_serialPorts">
+    /dev/ttyUSB0
+    </string-array>
+
+    <!-- enable screen saver feature -->
+    <bool name="config_enableDreams">true</bool>
+
+    <!-- Name of screensaver components to look for if none has been chosen by the user -->
+    <string name="config_defaultDreamComponent" translatable="false">com.google.android.deskclock/com.android.deskclock.Screensaver</string>
+
+    <!-- Set to true to add links to Cell Broadcast app from Settings and MMS app. -->
+    <bool name="config_cellBroadcastAppLinks">true</bool>
 </resources>
