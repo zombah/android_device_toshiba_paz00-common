@@ -20,11 +20,10 @@ TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
 
 # Tegra2 specific tweaks
 ARCH_ARM_HAVE_TLS_REGISTER 		:= true
-#ARCH_ARM_USE_NON_NEON_MEMCPY 		:= true
 
 # Kernel
-TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
-TARGET_KERNEL_CONFIG 			:= paz00_android_defconfig
+#TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
+#TARGET_KERNEL_CONFIG 			:= paz00_android_defconfig
 
 USE_OPENGL_RENDERER 			:= true
 
@@ -44,21 +43,14 @@ BOARD_HAS_LARGE_FILESYSTEM              := true
 # Wifi related defines
 USES_TI_MAC80211 			:= false
 USES_BCMHD_NL80211			:= true
+
 ifdef USES_TI_MAC80211
 BOARD_WPA_SUPPLICANT_DRIVER 		:= NL80211
 WPA_SUPPLICANT_VERSION 			:= VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB 	:= lib_driver_cmd_wl12xx
 BOARD_HOSTAPD_DRIVER 			:= NL80211
 BOARD_HOSTAPD_PRIVATE_LIB 		:= lib_driver_cmd_wl12xx
-BOARD_WLAN_DEVICE 			:= wlan0
 BOARD_SOFTAP_DEVICE			:= wlan0
-WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
-WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
-WIFI_DRIVER_MODULE_ARG			:= "nohwcrypt=1"
-WIFI_DRIVER_FW_PATH_STA			:= "/system/vendor/firmware/rt2870.bin"
-WIFI_DRIVER_FW_PATH_P2P                 := "/system/vendor/firmware/rt2870.bin"
-WIFI_DRIVER_FW_PATH_AP			:= "/system/vendor/firmware/rt2870.bin"
-WIFI_FIRMWARE_LOADER             	:= ""
 COMMON_GLOBAL_CFLAGS += -DUSES_TI_MAC80211
 endif
 
@@ -68,6 +60,12 @@ WPA_SUPPLICANT_VERSION                  := VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB        := private_lib_driver_cmd
 BOARD_HOSTAPD_DRIVER                    := NL80211
 BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
+# Unknow option
+#BOARD_LEGACY_NL80211_STA_EVENTS  	:= true
+endif
+
+# Wifi base
+BOARD_WLAN_DEVICE                       := wlan0
 WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
 WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
 WIFI_DRIVER_MODULE_ARG                  := "nohwcrypt=1"
@@ -75,7 +73,6 @@ WIFI_DRIVER_FW_PATH_STA                 := "/system/vendor/firmware/rt2870.bin"
 WIFI_DRIVER_FW_PATH_P2P                 := "/system/vendor/firmware/rt2870.bin"
 WIFI_DRIVER_FW_PATH_AP                  := "/system/vendor/firmware/rt2870.bin"
 WIFI_FIRMWARE_LOADER                    := ""
-endif
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH 			:= true
@@ -95,7 +92,7 @@ TARGET_USES_OLD_LIBSENSORS_HAL 		:= false
 BOARD_USES_TINY_AUDIO_HW 		:= true
 
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
-#TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
+TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
 # Partitions 
 TARGET_USERIMAGES_USE_EXT4		:= true
@@ -103,7 +100,7 @@ BOARD_BOOTIMAGE_PARTITION_SIZE 		:= 8388608
 BOARD_RECOVERYIMAGE_PARTITION_SIZE 	:= 5242880
 BOARD_SYSTEMIMAGE_PARTITION_SIZE 	:= 536970912
 BOARD_USERDATAIMAGE_PARTITION_SIZE 	:= 1294991360
-BOARD_FLASH_BLOCK_SIZE 			:= 4096
+BOARD_FLASH_BLOCK_SIZE 			:= 131072
 
 # Disable spase in image creation, otherwise image not mountble and need to be processed with simg2img
 TARGET_USERIMAGES_SPARSE_EXT_DISABLED 	:= true
