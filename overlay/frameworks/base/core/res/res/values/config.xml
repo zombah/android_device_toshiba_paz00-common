@@ -196,9 +196,6 @@
          applied. -->
     <bool name="config_hasRemovableLid">true</bool>
     
-    <!-- Device has a h/w rotation lock switch -->
-    <bool name="config_hasRotationLockSwitch">true</bool>
-
     <!-- Setting to false will disable CM's IME switcher implementation for tablets -->
     <bool name="config_show_cmIMESwitcher">false</bool>
 
