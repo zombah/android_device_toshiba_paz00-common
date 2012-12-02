@@ -14,5 +14,5 @@ echo "lp1" > /sys/power/suspend/mode
 #Power tweaks
 echo "1500" > /proc/sys/vm/dirty_writeback_centisecs
 echo "auto" > /sys/bus/usb/devices/1-1.2/power/level
-echo "auto" > /sys/bus/usb/devices/1-1.1/power/level
-echo "auto" > /sys/bus/usb/devices/2-1.3/power/level
+#echo "auto" > /sys/bus/usb/devices/1-1.1/power/level
+#echo "auto" > /sys/bus/usb/devices/2-1.3/power/level
