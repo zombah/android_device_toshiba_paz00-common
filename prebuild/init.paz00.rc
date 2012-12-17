@@ -266,6 +266,17 @@ service setup_fs /system/bin/setup_fs \
     group root
     oneshot
 
+# configure MSC partition
+service mischelp /system/bin/mischelp /dev/block/mmcblk0p5 boot-recovery
+    disabled
+    class main
+    user root
+    group root
+    oneshot
+
+on property:sys.shutdown.requested=1recovery
+    start mischelp
+
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
     class main
