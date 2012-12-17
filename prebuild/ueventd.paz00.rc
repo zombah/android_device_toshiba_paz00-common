@@ -26,7 +26,7 @@
 /dev/ad5820             0600    media   camera
 /dev/tegra_camera       0660    media   camera
 /dev/spdif*             0660    system  audio
-/dev/ttyUSB*            0660    radio   system
+/dev/ttyUSB*            0777    radio   system
 /dev/mpu                0640    system  system
 /dev/mpuirq             0640    system  system
 /dev/video0             0666    media   camera
@@ -39,7 +39,7 @@
 /dev/block/mmcblk0p1    0660    system  system
 /dev/tegra-crypto       0660    system  system
 /dev/bma150             0660    system  system
-/dev/ttyACM*    	0660    radio   system
+/dev/ttyACM*    	0777    radio   system
 /dev/ttyHS*    		0660    radio   system
 /dev/tegra_dc* 		0666 	system system
 
@@ -51,3 +51,5 @@
 /sys/class/rfkill/rfkill1/state	0660 bluetooth bluetooth
 /sys/class/rfkill/rfkill1/type 0660 bluetooth bluetooth
 /sys/class/rfkill/rfkill1/soft 0660 bluetooth bluetooth
+
+/dev/fuse   		0666   root   root

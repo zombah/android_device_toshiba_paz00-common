@@ -3,16 +3,33 @@ import init.nv_dev_board.usb.rc
 on early-init
     mount debugfs debugfs /sys/kernel/debug
 
-    export EXTERNAL_STORAGE /storage/sdcard0
+on init
+    # See storage config details at http://source.android.com/tech/storage/
+    mkdir /mnt/shell/emulated 0700 shell shell
+    mkdir /storage/emulated 0555 root root
+
+    export EXTERNAL_STORAGE /storage/emulated/legacy
+    export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
+    export EMULATED_STORAGE_TARGET /storage/emulated
+
     export SECONDARY_STORAGE /storage/sdcard1
+    export SECOND_VOLUME_STORAGE /storage/sdcard1
+    export THIRD_VOLUME_STORAGE /storage/sdcard2
+
+    # Support legacy paths
+    symlink /storage/emulated/legacy /sdcard
+    symlink /storage/emulated/legacy /mnt/sdcard
+    symlink /storage/emulated/legacy /storage/sdcard0
+    symlink /mnt/shell/emulated/0 /storage/emulated/legacy
+
     mkdir /storage 0050 system sdcard_r
-    mkdir /storage/sdcard0 0000 system system
     mkdir /storage/sdcard1 0000 system system
+    mkdir /storage/sdcard2 0000 system system
 
     # for backwards compatibility
-    symlink /storage/sdcard1 /mnt/external_sd
-    symlink /storage/sdcard0 /mnt/sdcard
-    symlink /storage/sdcard0 /sdcard
+    symlink /storage/sdcard2 /mnt/external_sd
+    symlink /storage/sdcard1 /mnt/sdcard
+    symlink /storage/sdcard1 /sdcard
 
     # create directory for mounting usb drives
     mkdir /storage/usbdisk 0666 system system
@@ -20,11 +37,23 @@ on early-init
     symlink /storage/usbdisk /mnt/usbdisk
     symlink /storage/usbdisk /usbdisk
 
+on early-boot
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor interactive
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor interactive
+
 on fs
+    setprop ro.crypto.umount_sd false
+    setprop ro.crypto.fuse_sdcard true
     mount ext4 /dev/block/mmcblk0p3 /system wait rw
     chmod 4755 /system/bin/pppd
     chmod 4755 /system/bin/abootimg
     mount_all /fstab.ac100
+
+on post-fs
+# Keep rootfs rw since FUSE needs dir creation	
+    mount rootfs rootfs / rw remount
 
 # Basic modules loading below
 # install wifi modules
@@ -79,12 +108,10 @@ on post-fs-data
     mkdir /data/misc/dhcp 0770 dhcp dhcp
     chown dhcp dhcp /data/misc/dhcp
 
-    # we will remap this as /storage/sdcard0 with the sdcard fuse tool
-    mkdir /data/media 0775 media_rw media_rw
-    chown media_rw media_rw /data/media
+    mkdir /data/media 0770 media_rw media_rw
 
     # change back to bluetooth from system
-    chown bluetooth bluetooth /data/misc/bluetooth
+    chown bluetooth net_bt_stack /data/misc/bluetooth
 
     # Set indication (checked by vold) that we have finished this action
     setprop vold.post_fs_data_done 1
@@ -93,14 +120,26 @@ on boot
 # bluetooth
     # UART device
     chmod 0660 /dev/ttyHS2
-    chown bluetooth bluetooth /dev/ttyHS2
+    chown bluetooth net_bt_stack /dev/ttyHS2
 
     # power up/down interface
     wait /sys/class/rfkill/rfkill0/state
     chmod 0660 /sys/class/rfkill/rfkill0/state
     chmod 0660 /sys/class/rfkill/rfkill0/type
-    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
-    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chown bluetooth net_bt_stack /sys/class/rfkill/rfkill0/state
+    chown bluetooth net_bt_stack /sys/class/rfkill/rfkill0/type
+
+    # bluetooth MAC address programming
+    chown bluetooth net_bt_stack ro.bt.bdaddr_path
+    chown bluetooth net_bt_stack /system/etc/bluetooth
+    chown bluetooth net_bt_stack /data/misc/bluetooth
+    setprop ro.bt.bdaddr_path "/data/misc/bluetooth/bdaddr"
+
+    # bluetooth LPM
+    chmod 0220 /proc/bluetooth/sleep/lpm
+    chmod 0220 /proc/bluetooth/sleep/btwrite
+    chown bluetooth net_bt_stack /proc/bluetooth/sleep/lpm
+    chown bluetooth net_bt_stack /proc/bluetooth/sleep/btwrite
 
 # backlight
     chown system system /sys/class/backlight/pwm-backlight/brightness
@@ -114,15 +153,6 @@ on boot
     chmod 666 /dev/nvhost-isp
     chmod 666 /dev/nvhost-mpe
     chmod 666 /dev/nvhost-vi
-    chmod 664 /sys/bus/iio/devices/device0/lux
-    chmod 664 /sys/bus/iio/devices/device0/proxim_ir
-
-    chmod 664 /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/mode
-    chmod 664 /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/range
-    chmod 664 /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/rate
-    chmod 664 /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/data
-    chmod 664 /sys/bus/i2c/drivers/mm_ak8975/0-000c/mode
-    chmod 664 /sys/bus/i2c/drivers/mm_ak8975/0-000c/show_flux
 
 # mbm-ril
 #    write /sys/bus/usb/devices/1-1/power/autosuspend 2
@@ -151,13 +181,6 @@ on boot
     chmod 0777 /dev/ttyUSB4                                                                    
     on device-added-/dev/ttyUSB5                                                               
     chmod 0777 /dev/ttyUSB5
-
-    chown system system /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/mode
-    chown system system /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/range
-    chown system system /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/rate
-    chown system system /sys/bus/i2c/drivers/lsm303dlh_a/0-0009/data
-    chown system system /sys/bus/i2c/drivers/mm_ak8975/0-000c/mode
-    chown system system /sys/bus/i2c/drivers/mm_ak8975/0-000c/show_flux
 
 # Power management settings
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 216000
@@ -220,7 +243,7 @@ service hostapd /system/bin/hostapd /data/misc/wifi/hostapd.conf
     oneshot
     disabled
 
-service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL
+service dhcpcd_wlan0 /system/bin/dhcpcd -aABDKL
     class main
     disabled
     oneshot
@@ -236,7 +259,7 @@ service dhcpcd_bnep0 /system/bin/dhcpcd -ABKL
     disabled
     oneshot
 
-service dhcpcd_eth0 /system/bin/dhcpcd -ABKL
+service dhcpcd_eth0 /system/bin/dhcpcd -ABDKL -f/system/etc/dhcpcd/dhcpcd.conf
     class main
     disabled
     oneshot
@@ -264,14 +287,30 @@ service iprenew_bnep0 /system/bin/dhcpcd -n
 # create virtual SD card at /mnt/sdcard, based on the /data/media directory
 # deamon will drop to user/group system/media_rw after initializing
 # underlying files in /data/media wil be created with user and group media_rw (1023)
-#service sdcard /system/bin/sdcard /data/media 1023 1023
-#    class late_start
+service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
+    class late_start
+
+# bugreport is triggered by the VOLUME-DOWN and VOLUME-UP keys
+service bugreport /system/bin/bugmailer.sh -b /system/media/audio/ui/Dock.ogg -e /system/media/audio/ui/Undock.ogg
+    class main
+    disabled
+    oneshot
+    keycodes 115 114
 
 # Start GPS daemon
 #service gps-daemon /system/bin/glgps_nvidiaTegra2android -c /system/etc/gps/gpsconfig.xml
 #    class late_start
 #    user root
 #    group root
+
+# create filesystems if necessary
+service setup_fs /system/bin/setup_fs \
+        /dev/block/mmcblk0p6 \
+        /dev/block/mmcblk0p4
+    class core
+    user root
+    group root
+    oneshot
 
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
