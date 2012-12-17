@@ -14,6 +14,9 @@ TARGET_ARCH_VARIANT 			:= armv7-a
 TARGET_ARCH_VARIANT_CPU 		:= cortex-a9
 TARGET_ARCH_VARIANT_FPU 		:= vfpv3-d16
 TARGET_CPU_SMP 				:= true
+# New 4.2 additions
+TARGET_ARCH				:= arm
+
 
 TARGET_NO_BOOTLOADER 			:= true
 TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
@@ -124,3 +127,5 @@ TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/l
 
 # Use a smaller subset of system fonts to keep image size lower
 #SMALLER_FONT_FOOTPRINT 			:= false
+
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR ?= device/toshiba/paz00-common/bluetooth
