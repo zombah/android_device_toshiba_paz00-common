@@ -20,4 +20,5 @@
     <device name="USB Camera" />
     <device name="NVEC power button" />
     <device name="power key" />
+    <device name="lid switch" />
 </devices>
