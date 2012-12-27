@@ -55,10 +55,10 @@ COMMON_GLOBAL_CFLAGS += -DUSES_TI_MAC80211
 endif
 
 ifdef USES_BCMHD_NL80211
-BOARD_WPA_SUPPLICANT_DRIVER             := NL80211
+BOARD_WPA_SUPPLICANT_DRIVER             := WEXT
 WPA_SUPPLICANT_VERSION                  := VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB        := private_lib_driver_cmd
-BOARD_HOSTAPD_DRIVER                    := NL80211
+BOARD_HOSTAPD_DRIVER                    := WEXT
 BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
 # Unknow option
 #BOARD_LEGACY_NL80211_STA_EVENTS  	:= true
