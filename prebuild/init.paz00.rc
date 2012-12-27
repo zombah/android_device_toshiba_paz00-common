@@ -40,8 +40,6 @@ on init
 on early-boot
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor interactive
 
 on fs
     setprop ro.crypto.umount_sd false
@@ -95,7 +93,7 @@ on post-fs
 # install tun for vpns
     insmod /system/lib/modules/tun.ko
 # install additional modules
-    insmod /system/lib/modules/lm90.ko
+#    insmod /system/lib/modules/lm90.ko
     insmod /system/lib/modules/tegra_wdt.ko
 # install zram module
     insmod /system/lib/modules/zram.ko
@@ -130,16 +128,16 @@ on boot
     chown bluetooth net_bt_stack /sys/class/rfkill/rfkill0/type
 
     # bluetooth MAC address programming
-    chown bluetooth net_bt_stack ro.bt.bdaddr_path
-    chown bluetooth net_bt_stack /system/etc/bluetooth
-    chown bluetooth net_bt_stack /data/misc/bluetooth
-    setprop ro.bt.bdaddr_path "/data/misc/bluetooth/bdaddr"
+    #chown bluetooth net_bt_stack ro.bt.bdaddr_path
+    #chown bluetooth net_bt_stack /system/etc/bluetooth
+    #chown bluetooth net_bt_stack /data/misc/bluetooth
+    #setprop ro.bt.bdaddr_path "/data/misc/bluetooth/bdaddr"
 
     # bluetooth LPM
-    chmod 0220 /proc/bluetooth/sleep/lpm
-    chmod 0220 /proc/bluetooth/sleep/btwrite
-    chown bluetooth net_bt_stack /proc/bluetooth/sleep/lpm
-    chown bluetooth net_bt_stack /proc/bluetooth/sleep/btwrite
+    #chmod 0220 /proc/bluetooth/sleep/lpm
+    #chmod 0220 /proc/bluetooth/sleep/btwrite
+    #chown bluetooth net_bt_stack /proc/bluetooth/sleep/lpm
+    #chown bluetooth net_bt_stack /proc/bluetooth/sleep/btwrite
 
 # backlight
     chown system system /sys/class/backlight/pwm-backlight/brightness
@@ -182,15 +180,19 @@ on boot
     on device-added-/dev/ttyUSB5                                                               
     chmod 0777 /dev/ttyUSB5
 
+# power
+    chown system system /sys/module/cpu_tegra/parameters/cpu_user_cap
+
 # Power management settings
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 216000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1000000
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq 216000
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq 1000000
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpufreq/interactive/go_maxspeed_load 80
-    write /sys/module/cpuidle/parameters/lp2_in_idle 1
+    #write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 216000
+    #write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1000000
+    #write /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq 216000
+    #write /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq 1000000
+    #write /sys/devices/system/cpu/cpufreq/interactive/go_maxspeed_load 80
+    write /sys/devices/system/cpu/cpufreq/interactive/boost_factor 2
+    #write /sys/devices/system/cpu/cpufreq/interactive/input_boost 1
+    write /sys/devices/system/cpu/cpufreq/interactive/sustain_load 80
+    write /sys/module/cpuidle/parameters/lp2_in_idle 0
 
 # Interactive governor settings
     chown system system /sys/devices/system/cpu/cpufreq/interactive/boost_factor
@@ -216,7 +218,7 @@ on boot
     write /sys/block/mmcblk1/queue/read_ahead_kb 2048
 
 service wpa_supplicant /system/bin/wpa_supplicant \
-    -Dnl80211 -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
+    -dd -Dwext -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
 #   we will start as root and wpa_supplicant will switch to user wifi
 #   after setting up the capabilities required for WEXT
 #   user wifi
@@ -227,7 +229,7 @@ service wpa_supplicant /system/bin/wpa_supplicant \
     oneshot
 
 service p2p_supplicant /system/bin/wpa_supplicant \
-    -Dnl80211 -iwlan0 -puse_p2p_group_interface=1 -c/data/misc/wifi/wpa_supplicant.conf
+    -dd -Dwext -iwlan0 -puse_p2p_group_interface=1 -c/data/misc/wifi/wpa_supplicant.conf
 # we will start as root and wpa_supplicant will switch to user wifi
 # after setting up the capabilities required for WEXT
 # user wifi
@@ -264,6 +266,11 @@ service dhcpcd_eth0 /system/bin/dhcpcd -ABDKL -f/system/etc/dhcpcd/dhcpcd.conf
     disabled
     oneshot
 
+service dhcpcd_usb0 /system/bin/dhcpcd -ABDKL -f/system/etc/dhcpcd/dhcpcd.conf
+    class main
+    disabled
+    oneshot
+
 service iprenew_wlan0 /system/bin/dhcpcd -n
     class main
     disabled
@@ -275,6 +282,11 @@ service iprenew_p2p /system/bin/dhcpcd -n
     oneshot
 
 service iprenew_eth0 /system/bin/dhcpcd -n
+    class main
+    disabled
+    oneshot
+
+service iprenew_usb0 /system/bin/dhcpcd -n
     class main
     disabled
     oneshot
@@ -355,13 +367,6 @@ on device-removed-/dev/ttyUSB3
                                                                                                    
 on property:init.svc.bootanim=stopped                                                              
     start wwlanselect
-
-# zram service
-service compcache /system/bin/handle_compcache
-    class main
-    user root
-    group root
-    disabled
 
 on property:persist.service.zram=10
     start compcache
