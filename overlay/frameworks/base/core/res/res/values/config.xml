@@ -168,7 +168,7 @@
     </string-array>
     
     <!-- Regex of wired ethernet ifaces -->
-    <string translatable="false" name="config_ethernet_iface_regex">eth\\d</string>
+    <string translatable="false" name="config_ethernet_iface_regex">(eth|usb)\\d</string>
 
     <!-- Control the behavior when the user long presses the home button.
            0 - Nothing
@@ -202,9 +202,11 @@
     <!-- Boolean indicating whether Softap requires reloading AP firmware -->
     <!-- <bool name="config_wifiApFirmwareReload">false</bool> -->
 
-    <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->                                    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
+    <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->   
+    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
 
-    <!-- Boolean indicating whether the wifi chipset has p2p support -->                                                    <bool translatable="false" name="config_wifi_p2p_support">false</bool>
+    <!-- Boolean indicating whether the wifi chipset has p2p support -->
+    <bool translatable="false" name="config_wifi_p2p_support">false</bool>
 
     <!-- Indicate whether closing the lid causes the device to go to sleep and opening
          it causes the device to wake up.
