@@ -103,6 +103,8 @@ BOARD_USES_AUDIO_LEGACY 		:= false
 TARGET_USES_OLD_LIBSENSORS_HAL 		:= false
 # Tinyhal
 BOARD_USES_TINY_AUDIO_HW 		:= true
+# Grouper tinyhal
+BOARD_USES_GROUPER_TINYHAL		:= false
 
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510

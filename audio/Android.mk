@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifeq  ($(strip $(BOARD_USES_GROUPER_TINYHAL)),true)
+
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := audio.primary.harmony
+LOCAL_MODULE := audio.primary.tegra
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_SRC_FILES := \
 	audio_hw.c \
@@ -30,3 +32,4 @@ LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)
 
+endif
