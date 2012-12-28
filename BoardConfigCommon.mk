@@ -119,3 +119,4 @@ TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/l
 #SMALLER_FONT_FOOTPRINT 			:= false
 
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR ?= device/toshiba/paz00-common/bluetooth
+BOARD_BLUEDROID_VENDOR_CONF := device/toshiba/paz00-common/bluetooth/vnd_ac100.txt
