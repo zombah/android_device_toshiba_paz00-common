@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "audio_hw_primary"
-/*#define LOG_NDEBUG 0*/
+#define LOG_NDEBUG 0
 
 #include <errno.h>
 #include <pthread.h>
@@ -38,18 +38,19 @@
 
 #include "audio_route.h"
 
-#define PCM_CARD 1
+#define PCM_CARD 0
 #define PCM_DEVICE 0
+#define PCM_DEVICE_HDMI 1
 #define PCM_DEVICE_SCO 2
 
 #define OUT_PERIOD_SIZE 512
 #define OUT_SHORT_PERIOD_COUNT 2
 #define OUT_LONG_PERIOD_COUNT 8
-#define OUT_SAMPLING_RATE 44100
+#define OUT_SAMPLING_RATE 48000
 
 #define IN_PERIOD_SIZE 1024
 #define IN_PERIOD_COUNT 4
-#define IN_SAMPLING_RATE 44100
+#define IN_SAMPLING_RATE 48000
 
 #define SCO_PERIOD_SIZE 256
 #define SCO_PERIOD_COUNT 4
@@ -174,16 +175,18 @@ static void release_buffer(struct resampler_buffer_provider *buffer_provider,
 /* Helper functions */
 
 static void select_devices(struct audio_device *adev)
-{
+{	
+	ALOGD("select_devices+");
     int headphone_on;
     int speaker_on;
-    int docked;
+    int hdmi_on;
     int main_mic_on;
 
-    headphone_on = adev->out_device & (AUDIO_DEVICE_OUT_WIRED_HEADSET |
-                                    AUDIO_DEVICE_OUT_WIRED_HEADPHONE);
+	ALOGV("out_devices=%d in_devices=%d active_out=%c active_in=%c", adev->out_device, adev->in_device, adev->active_out!=NULL?'y':'n', adev->active_in!=NULL?'y':'n');
+	
+    headphone_on = adev->out_device & (AUDIO_DEVICE_OUT_WIRED_HEADSET | AUDIO_DEVICE_OUT_WIRED_HEADPHONE);
     speaker_on = adev->out_device & AUDIO_DEVICE_OUT_SPEAKER;
-    docked = adev->out_device & AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET;
+    hdmi_on = adev->out_device & AUDIO_DEVICE_OUT_AUX_DIGITAL;
     main_mic_on = adev->in_device & AUDIO_DEVICE_IN_BUILTIN_MIC;
 
     reset_mixer_state(adev->ar);
@@ -192,19 +195,18 @@ static void select_devices(struct audio_device *adev)
         audio_route_apply_path(adev->ar, "speaker");
     if (headphone_on)
         audio_route_apply_path(adev->ar, "headphone");
-    if (docked)
-        audio_route_apply_path(adev->ar, "dock");
-    if (main_mic_on) {
-        if (adev->orientation == ORIENTATION_LANDSCAPE)
-            audio_route_apply_path(adev->ar, "main-mic-left");
-        else
-            audio_route_apply_path(adev->ar, "main-mic-top");
-    }
+    if (hdmi_on)
+        audio_route_apply_path(adev->ar, "hdmi");
+    if (main_mic_on)
+        audio_route_apply_path(adev->ar, "mic");
+    
 
     update_mixer_state(adev->ar);
 
-    ALOGV("hp=%c speaker=%c dock=%c main-mic=%c", headphone_on ? 'y' : 'n',
-          speaker_on ? 'y' : 'n', docked ? 'y' : 'n', main_mic_on ? 'y' : 'n');
+    ALOGV("hp=%c speaker=%c hdmi=%c main-mic=%c", headphone_on ? 'y' : 'n',
+          speaker_on ? 'y' : 'n', hdmi_on ? 'y' : 'n', main_mic_on ? 'y' : 'n');
+
+	ALOGD("select_devices-");
 }
 
 /* must be called with hw device and output stream mutexes locked */
@@ -212,8 +214,11 @@ static void do_out_standby(struct stream_out *out)
 {
     struct audio_device *adev = out->dev;
 
+    ALOGV("do_out_standby+");
+
     if (!out->standby) {
-        pcm_close(out->pcm);
+    	ALOGD("do_out_standby++");
+		pcm_close(out->pcm);
         out->pcm = NULL;
         adev->active_out = NULL;
         if (out->resampler) {
@@ -226,6 +231,7 @@ static void do_out_standby(struct stream_out *out)
         }
         out->standby = true;
     }
+	ALOGV("do_out_standby-");
 }
 
 /* must be called with hw device and input stream mutexes locked */
@@ -233,7 +239,10 @@ static void do_in_standby(struct stream_in *in)
 {
     struct audio_device *adev = in->dev;
 
+	ALOGV("do_in_standby+");
+	
     if (!in->standby) {
+		ALOGD("do_in_standby++");
         pcm_close(in->pcm);
         in->pcm = NULL;
         adev->active_in = NULL;
@@ -247,6 +256,7 @@ static void do_in_standby(struct stream_in *in)
         }
         in->standby = true;
     }
+	ALOGV("do_in_standby-");
 }
 
 /* must be called with hw device and output stream mutexes locked */
@@ -262,6 +272,10 @@ static int start_output_stream(struct stream_out *out)
      * (speaker/headphone) PCM or the BC SCO PCM open at
      * the same time.
      */
+	if(adev->out_device & AUDIO_DEVICE_OUT_AUX_DIGITAL) {
+        device = PCM_DEVICE_HDMI;
+        out->pcm_config = &pcm_config_out;
+    } else
     if (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO) {
         device = PCM_DEVICE_SCO;
         out->pcm_config = &pcm_config_sco;
@@ -289,6 +303,8 @@ static int start_output_stream(struct stream_out *out)
         pthread_mutex_unlock(&in->lock);
     }
 
+	ALOGD("outpcm open: card=%d, device=%d, rate=%d", PCM_CARD, device, out->pcm_config->rate);
+	
     out->pcm = pcm_open(PCM_CARD, device, PCM_OUT | PCM_NORESTART, out->pcm_config);
 
     if (out->pcm && !pcm_is_ready(out->pcm)) {
@@ -357,6 +373,8 @@ static int start_input_stream(struct stream_in *in)
         pthread_mutex_unlock(&out->lock);
     }
 
+	ALOGD("inpcm open: card=%d, device=%d, rate=%d", PCM_CARD, device, adev->active_out->pcm_config->rate);
+	
     in->pcm = pcm_open(PCM_CARD, device, PCM_IN, in->pcm_config);
 
     if (in->pcm && !pcm_is_ready(in->pcm)) {
@@ -541,6 +559,8 @@ static int out_dump(const struct audio_stream *stream, int fd)
 
 static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
+	ALOGD("out_set_parameters:%s", kvpairs);
+	
     struct stream_out *out = (struct stream_out *)stream;
     struct audio_device *adev = out->dev;
     struct str_parms *parms;
@@ -557,11 +577,10 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
         val = atoi(value);
         if ((adev->out_device != val) && (val != 0)) {
             /*
-             * If SCO is turned on/off, we need to put audio into standby
-             * because SCO uses a different PCM.
+             * If SCO or HDMI is turned on/off, we need to put audio into standby
+             * because they use a different PCM PORT.
              */
-            if ((val & AUDIO_DEVICE_OUT_ALL_SCO) ^
-                    (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO)) {
+            if ( (val & AUDIO_DEVICE_OUT_ALL_SCO) ^ (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO) || (val & AUDIO_DEVICE_OUT_AUX_DIGITAL) ^ (adev->out_device & AUDIO_DEVICE_OUT_AUX_DIGITAL)) {
                 pthread_mutex_lock(&out->lock);
                 do_out_standby(out);
                 pthread_mutex_unlock(&out->lock);
@@ -845,6 +864,8 @@ static int in_dump(const struct audio_stream *stream, int fd)
 
 static int in_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
+	ALOGD("in_set_parameters:%s", kvpairs);
+	
     struct stream_in *in = (struct stream_in *)stream;
     struct audio_device *adev = in->dev;
     struct str_parms *parms;
@@ -1035,6 +1056,8 @@ static void adev_close_output_stream(struct audio_hw_device *dev,
 
 static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 {
+	ALOGD("adev_set_parameters:%s", kvpairs);
+
     struct audio_device *adev = (struct audio_device *)dev;
     struct str_parms *parms;
     char *str;
@@ -1267,7 +1290,7 @@ struct audio_module HAL_MODULE_INFO_SYM = {
         .module_api_version = AUDIO_MODULE_API_VERSION_0_1,
         .hal_api_version = HARDWARE_HAL_API_VERSION,
         .id = AUDIO_HARDWARE_MODULE_ID,
-        .name = "Grouper audio HW HAL",
+        .name = "Adam audio HW HAL",
         .author = "The Android Open Source Project",
         .methods = &hal_module_methods,
     },
