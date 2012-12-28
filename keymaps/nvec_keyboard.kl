@@ -59,10 +59,10 @@ key 59    MEDIA_PREVIOUS    WAKE
 key 60    MEDIA_PLAY_PAUSE  WAKE
 key 61    MEDIA_STOP	    WAKE
 key 62    MEDIA_NEXT	    WAKE
-key 63    TV                WAKE
-key 64    BRIGHTNESS_DOWN   WAKE
-key 65    BRIGHTNESS_UP     WAKE
-key 66	  TOGGLE_WIFI	    WAKE
+key 63    MENU              WAKE
+key 64    ZOOM_IN   	    WAKE
+key 65    ZOOM_OUT     	    WAKE
+key 66	  CALCULATOR	    WAKE
 key 68    VOLUME_DOWN       WAKE
 key 86    BACKSLASH	    WAKE
 key 87    VOLUME_UP         WAKE
@@ -81,5 +81,5 @@ key 109   PAGE_DOWN	    WAKE
 key 110   APP_SWITCH	    WAKE
 key 111   FORWARD_DEL	    WAKE
 key 125   HOME		    WAKE
-key 139   MENU              WAKE
+key 139   SETTINGS          WAKE
 key 217   SEARCH            WAKE
