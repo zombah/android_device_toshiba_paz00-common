@@ -4,5 +4,5 @@
 # specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
 
 /dev/block/mmcblk0p3            /system             ext4      ro,remount				wait
-/dev/block/mmcblk0p4            /cache              ext4      discard,nosuid,nodev,noatime,user_xattr,acl,barrier=1,journal_async_commit,nodelalloc,data=writeback		wait
-/dev/block/mmcblk0p6            /data               ext4      discard,nosuid,nodev,noatime,user_xattr,acl,barrier=1,journal_async_commit,nodelalloc,data=writeback		wait
+/dev/block/mmcblk0p4            /cache              ext4      discard,nosuid,nodev,noatime,nomblk_io_submit,errors=panic		wait
+/dev/block/mmcblk0p6            /data               ext4      discard,nosuid,nodev,noatime,nomblk_io_submit,errors=panic		wait
