@@ -40,16 +40,15 @@
 /dev/tegra-crypto       0660    system  system
 /dev/bma150             0660    system  system
 /dev/ttyACM*    	0777    radio   system
-/dev/ttyHS*    		0660    radio   system
 /dev/tegra_dc* 		0666 	system system
 
 /dev/rfkill		0660   	root	wifi
 
-/sys/class/rfkill/rfkill0/state 0660 wifi wifi
-/sys/class/rfkill/rfkill0/soft 0660 wifi wifi
-/sys/class/rfkill/rfkill0/type 0660 wifi wifi
-/sys/class/rfkill/rfkill1/state	0660 bluetooth bluetooth
-/sys/class/rfkill/rfkill1/type 0660 bluetooth bluetooth
-/sys/class/rfkill/rfkill1/soft 0660 bluetooth bluetooth
+/sys/class/rfkill/rfkill2/state 0660 wifi wifi
+/sys/class/rfkill/rfkill2/soft 0660 wifi wifi
+/sys/class/rfkill/rfkill2/type 0660 wifi wifi
+/sys/class/rfkill/rfkill1/state 0660 wifi wifi
+/sys/class/rfkill/rfkill1/soft 0660 wifi wifi
+/sys/class/rfkill/rfkill1/type 0660 wifi wifi
 
 /dev/fuse   		0666   root   root
