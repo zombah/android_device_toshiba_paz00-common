@@ -128,16 +128,16 @@ on boot
     chown bluetooth net_bt_stack /sys/class/rfkill/rfkill0/type
 
     # bluetooth MAC address programming
-    #chown bluetooth net_bt_stack ro.bt.bdaddr_path
-    #chown bluetooth net_bt_stack /system/etc/bluetooth
-    #chown bluetooth net_bt_stack /data/misc/bluetooth
-    #setprop ro.bt.bdaddr_path "/data/misc/bluetooth/bdaddr"
+    chown bluetooth net_bt_stack ro.bt.bdaddr_path
+    chown bluetooth net_bt_stack /system/etc/bluetooth
+    chown bluetooth net_bt_stack /data/misc/bluetooth
+    setprop ro.bt.bdaddr_path "/data/misc/bluetooth/bdaddr"
 
     # bluetooth LPM
-    #chmod 0220 /proc/bluetooth/sleep/lpm
-    #chmod 0220 /proc/bluetooth/sleep/btwrite
-    #chown bluetooth net_bt_stack /proc/bluetooth/sleep/lpm
-    #chown bluetooth net_bt_stack /proc/bluetooth/sleep/btwrite
+    chmod 0220 /proc/bluetooth/sleep/lpm
+    chmod 0220 /proc/bluetooth/sleep/btwrite
+    chown bluetooth net_bt_stack /proc/bluetooth/sleep/lpm
+    chown bluetooth net_bt_stack /proc/bluetooth/sleep/btwrite
 
 # backlight
     chown system system /sys/class/backlight/pwm-backlight/brightness
@@ -218,7 +218,7 @@ on boot
     write /sys/block/mmcblk1/queue/read_ahead_kb 2048
 
 service wpa_supplicant /system/bin/wpa_supplicant \
-    -dd -Dwext -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
+    -Dwext -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
 #   we will start as root and wpa_supplicant will switch to user wifi
 #   after setting up the capabilities required for WEXT
 #   user wifi
@@ -229,7 +229,7 @@ service wpa_supplicant /system/bin/wpa_supplicant \
     oneshot
 
 service p2p_supplicant /system/bin/wpa_supplicant \
-    -dd -Dwext -iwlan0 -puse_p2p_group_interface=1 -c/data/misc/wifi/wpa_supplicant.conf
+    -Dwext -iwlan0 -puse_p2p_group_interface=1 -c/data/misc/wifi/wpa_supplicant.conf
 # we will start as root and wpa_supplicant will switch to user wifi
 # after setting up the capabilities required for WEXT
 # user wifi
