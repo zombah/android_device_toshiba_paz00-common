@@ -125,12 +125,10 @@
     </string-array>
 
 <!-- new unstable settings -->
-
-    <!-- Package name providing network location support. -->
-    <!-- <string name="config_networkLocationProviderPackageName" translatable="false">@null</string> -->
-
-    <!-- Package name providing geocoder API support. -->
-    <!-- <string name="config_geocodeProviderPackageName" translatable="false">@null</string> -->
+     <string-array name="config_locationProviderPackageNames" translatable="false">
+         <item>com.android.location.fused</item>
+         <item>com.google.android.location</item>
+     </string-array>
 
      <!-- The number of degrees to rotate the display when the keyboard is open. -->
      <integer name="config_lidOpenRotation">0</integer>
