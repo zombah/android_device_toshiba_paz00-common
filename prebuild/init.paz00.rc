@@ -43,7 +43,7 @@ on early-boot
 
 on fs
     setprop ro.crypto.umount_sd false
-    setprop ro.crypto.fuse_sdcard true
+#    setprop ro.crypto.fuse_sdcard true
     mount ext4 /dev/block/mmcblk0p3 /system wait rw
     chmod 4755 /system/bin/pppd
     chmod 4755 /system/bin/abootimg
@@ -51,7 +51,7 @@ on fs
 
 on post-fs
 # Keep rootfs rw since FUSE needs dir creation	
-    mount rootfs rootfs / rw remount
+#    mount rootfs rootfs / rw remount
 
 # Basic modules loading below
 # install wifi modules
