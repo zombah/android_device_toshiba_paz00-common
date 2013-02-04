@@ -257,6 +257,15 @@ service iprenew_bnep0 /system/bin/dhcpcd -n
 #    user root
 #    group root
 
+# create filesystems if necessary
+service setup_fs /system/bin/setup_fs \
+        /dev/block/mmcblk0p6 \
+        /dev/block/mmcblk0p4
+    class core
+    user root
+    group root
+    oneshot
+
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
     class main
