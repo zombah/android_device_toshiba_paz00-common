@@ -1,6 +1,6 @@
 #!/system/bin/sh
 #Debug early suspend
-#echo "15" > /sys/module/wakelock/parameters/debug_mask
+echo "15" > /sys/module/wakelock/parameters/debug_mask
 #echo "15" > /sys/module/userwakelock/parameters/debug_mask
 #echo "15" > /sys/module/earlysuspend/parameters/debug_mask
 
