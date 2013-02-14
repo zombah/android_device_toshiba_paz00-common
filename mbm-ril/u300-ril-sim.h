@@ -29,6 +29,7 @@ void set_pending_hotswap(int pending_hotswap);
 
 void onSimStateChanged(const char *s);
 void onSimHotswap(const char *s);
+void ResetHotswap(void);
 
 void requestGetSimStatus(void *data, size_t datalen, RIL_Token t);
 void requestSIM_IO(void *data, size_t datalen, RIL_Token t);
@@ -39,5 +40,7 @@ void requestSetFacilityLock(void *data, size_t datalen, RIL_Token t);
 void requestQueryFacilityLock(void *data, size_t datalen, RIL_Token t);
 
 void pollSIMState(void *param);
+
+void setPollSIMState(void *param);
 
 #endif

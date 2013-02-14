@@ -43,7 +43,9 @@ static void *dummyDispatch(void *data, size_t datalen);
 #define dispatchCdmaSmsAck dummyDispatch
 #define dispatchCdmaBrSmsCnf dummyDispatch
 #define dispatchRilCdmaSmsWriteArgs dummyDispatch
-  
+#define dispatchCdmaSubscriptionSource dummyDispatch
+#define dispatchVoiceRadioTech dummyDispatch
+
 static void *dispatchCallForward(void *data, size_t datalen);
 static void *dispatchDial(void *data, size_t datalen);
 static void *dispatchSIM_IO(void *data, size_t datalen);
@@ -68,8 +70,8 @@ static void dummyResponse(void);
 #define responseSMS dummyResponse
 #define responseString dummyResponse
 #define responseStrings dummyResponse
-#define responseStringsNetworks dummyResponse
 #define responseVoid dummyResponse
+#define responseStringsNetworks dummyResponse
 
 #define responseSimStatus dummyResponse
 #define responseRilSignalStrength dummyResponse
@@ -79,9 +81,6 @@ static void dummyResponse(void);
 
 #define dispatchDataCall dispatchStrings
 #define responseSetupDataCall responseStrings
-
-#define dispatchCdmaSubscriptionSource dispatchStrings
-#define dispatchVoiceRadioTech dispatchStrings
 
 /*
 should be looked into how dispatchDataCall and others really should be handled,
@@ -210,7 +209,7 @@ static void *dispatchStrings(void *data, size_t datalen)
 
 static void *dispatchGsmBrSmsCnf(void *data, size_t datalen)
 {
-    RIL_GSM_BroadcastSmsConfigInfo **a =
+    RIL_GSM_BroadcastSmsConfigInfo **a = 
         (RIL_GSM_BroadcastSmsConfigInfo **) data;
     int count;
     void **ret;

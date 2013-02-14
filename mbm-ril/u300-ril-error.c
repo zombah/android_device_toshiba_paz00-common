@@ -25,131 +25,131 @@ const char *errorCauseToString(int cause)
     const char *string;
 
     switch (cause) {
-        case E2NAP_C_SUCCESS:
-            string = "E2NAP_C_SUCCESS";
+        case E2NAP_CAUSE_SUCCESS:
+            string = "Success";
             break;
-        case E2NAP_C_GPRS_ATTACH_NOT_POSSIBLE:
-            string = "E2NAP_C_GPRS_ATTACH_NOT_POSSIBLE";
+        case E2NAP_CAUSE_GPRS_ATTACH_NOT_POSSIBLE:
+            string = "GPRS attach not possible";
             break;
-        case E2NAP_C_NO_SIGNAL_CONN:
-            string = "E2NAP_C_NO_SIGNAL_CONN";
+        case E2NAP_CAUSE_NO_SIGNAL_CONN:
+            string = "No signaling connection";
             break;
-        case E2NAP_C_REACTIVATION_POSSIBLE:
-            string = "E2NAP_C_REACTIVATION_POSSIBLE";
+        case E2NAP_CAUSE_REACTIVATION_POSSIBLE:
+            string = "Reactivation possible";
             break;
-        case E2NAP_C_ACCESS_CLASS_BARRED:
-            string = "E2NAP_C_ACCESS_CLASS_BARRED";
+        case E2NAP_CAUSE_ACCESS_CLASS_BARRED:
+            string = "Access class barred";
             break;
         case GPRS_OP_DETERMINED_BARRING:
-            string = "GPRS_OP_DETERMINED_BARRIG";
+            string = "Operator Determined Barring";
             break;
         case GPRS_MBMS_CAPA_INFUFFICIENT:
-            string = "GPRS_MBMS_CAPA_INFUFFICIENT";
+            string = "MBMS bearer capabilities insufficient for the service";
             break;
         case GPRS_LLC_SNDCP_FAILURE:
-            string = "GPRS_LLC_SNDCP_FAILURE";
+            string = "LLC or SNDCP failure";
             break;
         case GPRS_INSUFFICIENT_RESOURCES:
-            string = "GPRS_INSUFFICIENT_RESOURCES";
+            string = "Insufficient resources";
             break;
         case GPRS_UNKNOWN_APN:
-            string = "GPRS_UNKNOWN_APN";
+            string = "Unknown or missing access point name";
             break;
         case GPRS_UNKNOWN_PDP_TYPE:
-            string = "GPRS_UNKNOWN_PDP_TYPE";
+            string = "Unknown PDP address or PDP type";
             break;
         case GPRS_USER_AUTH_FAILURE:
-            string = "GPRS_USER_AUTH_FAILURE";
+            string = "User authentication failed";
             break;
         case GPRS_ACT_REJECTED_GGSN:
-            string = "GPRS_ACT_REJECTED_GGSN";
+            string = "Activation rejected by GGSN";
             break;
         case GPRS_ACT_REJECTED_UNSPEC:
-            string = "GPRS_ACT_REJECTED_UNSPEC";
+            string = "Activation rejected, unspecified";
             break;
         case GPRS_SERVICE_OPTION_NOT_SUPP:
-            string = "GPRS_SERVICE_OPTION_NOT_SUPP";
+            string = "Service option not supported";
             break;
         case GPRS_REQ_SER_OPTION_NOT_SUBS:
-            string = "GPRS_REQ_SER_OPTION_NOT_SUBS";
+            string = "Requested service option not subscribed";
             break;
         case GPRS_SERVICE_OUT_OF_ORDER:
-            string = "GPRS_SERVICE_OUT_OF_ORDER";
+            string = "Service option temporarily out of order";
             break;
         case GPRS_NSAPI_ALREADY_USED:
-            string = "GPRS_NSAPI_ALREADY_USED";
+            string = "NSAPI already used";
             break;
         case GPRS_REGULAR_DEACTIVATION:
-            string = "GPRS_REGULAR_DEACTIVATION";
+            string = "Regular deactivation";
             break;
         case GPRS_QOS_NOT_ACCEPTED:
-            string = "GPRS_QOS_NOT_ACCEPTED";
+            string = "QoS not accepted";
             break;
         case GPRS_NETWORK_FAILURE:
-            string = "GPRS_NETWORK_FAILURE";
+            string = "Network failure";
             break;
         case GPRS_REACTIVATION_REQUESTED:
-            string = "GPRS_REACTIVATION_REQUESTED";
+            string = "Reactivation requested";
             break;
         case GPRS_FEATURE_NOT_SUPPORTED:
-            string = "GPRS_FEATURE_NOT_SUPPORTED";
+            string = "Feature not supported";
             break;
         case GRPS_SEMANTIC_ERROR_TFT:
-            string = "GRPS_SEMANTIC_ERROR_TFT";
+            string = "semantic error in the TFT operation.";
             break;
         case GPRS_SYNTACT_ERROR_TFT:
-            string = "GPRS_SYNTACT_ERROR_TFT";
+            string = "syntactical error in the TFT operation.";
             break;
         case GRPS_UNKNOWN_PDP_CONTEXT:
-            string = "GRPS_UNKNOWN_PDP_CONTEXT";
+            string = "unknown PDP context";
             break;
         case GPRS_SEMANTIC_ERROR_PF:
-            string = "GPRS_SEMANTIC_ERROR_PF";
+            string = "semantic errors in packet filter(s)";
             break;
         case GPRS_SYNTACT_ERROR_PF:
-            string = "GPRS_SYNTACT_ERROR_PF";
+            string = "syntactical error in packet filter(s)";
             break;
         case GPRS_PDP_WO_TFT_ALREADY_ACT:
-            string = "GPRS_PDP_WO_TFT_ALREADY_ACT";
+            string = "PDP context without TFT already activated";
             break;
         case GPRS_MULTICAST_GMEM_TIMEOUT:
-            string = "GPRS_MULTICAST_GMEM_TIMEOUT";
+            string = "Multicast group membership time-out";
             break;
         case GPRS_ACT_REJECTED_BCM_VIOLATION:
-            string = "GPRS_ACT_REJECTED_BCM_VIOLATION";
+            string = "Activation rejected, Bearer ControlMode violation";
             break;
         case GPRS_INVALID_TRANS_IDENT:
-            string = "GPRS_INVALID_TRANS_IDENT";
+            string = "Invalid transaction identifier value.";
             break;
         case GRPS_SEM_INCORRECT_MSG:
-            string = "GRPS_SEM_INCORRECT_MSG";
+            string = "Semantically incorrect message.";
             break;
         case GPRS_INVALID_MAN_INFO:
-            string = "GPRS_INVALID_MAN_INFO";
+            string = "Invalid mandatory information.";
             break;
         case GPRS_MSG_TYPE_NOT_IMPL:
-            string = "GPRS_MSG_TYPE_NOT_IMPL";
+            string = "Message type non-existent or not implemented.";
             break;
         case GPRS_MSG_NOT_COMP_PROTOCOL:
-            string = "GPRS_MSG_NOT_COMP_PROTOCOL";
+            string = "Message not compatible with protocol state.";
             break;
         case GPRS_IE_NOT_IMPL:
-            string = "GPRS_IE_NOT_IMPL";
+            string = "Information element non-existent or not implemented.";
             break;
         case GPRS_COND_IE_ERROR:
-            string = "GPRS_COND_IE_ERROR";
+            string = "Conditional IE error.";
             break;
         case GPRS_MSG_NOT_COMP_PROTO_STATE:
-            string = "GPRS_MSG_NOT_COMP_PROTO_STATE";
+            string = "Message not compatible with protocol state.";
             break;
         case GPRS_PROTO_ERROR_UNSPECIFIED:
-            string = "GPRS_PROTO_ERROR_UNSPECIFIED";
+            string = "Protocol error, unspecified.";
             break;
         case GPRS_APN_RESTRICT_VALUE_INCOMP:
-            string = "GPRS_APN_RESTRICT_VALUE_INCOMP";
+            string = "APN restriction value incompatible with active PDP context.";
             break;
         default:
-            string = "E2NAP_C_<> Unknown!";
+            string = "E2NAP_CAUSE_<> Unknown!";
             break;
     }
 
@@ -161,39 +161,17 @@ const char *e2napStateToString(int state)
     const char *string;
 
     switch (state) {
-        case E2NAP_ST_DISCONNECTED:
-            string = "E2NAP_ST_DISCONNECTED";
+        case E2NAP_STATE_DISCONNECTED:
+            string = "Disconnected";
             break;
-        case E2NAP_ST_CONNECTED:
-            string = "E2NAP_ST_CONNECTED";
+        case E2NAP_STATE_CONNECTED:
+            string = "Connected";
             break;
-        case E2NAP_ST_CONNECTING:
-            string = "E2NAP_ST_CONNECTING";
-            break;
-        default:
-            string = "E2NAP_ST_<> Uknown!";
-            break;
-    }
-
-    return string;
-}
-
-const char *enapStateToString(int state)
-{
-    const char *string;
-
-    switch (state) {
-        case ENAP_T_NOT_CONNECTED:
-            string = "ENAP_T_NOT_CONNECTED";
-            break;
-        case ENAP_T_CONNECTED:
-            string = "ENAP_T_CONNECTED";
-            break;
-        case ENAP_T_CONN_IN_PROG:
-            string = "ENAP_T_CONN_IN_PROG";
+        case E2NAP_STATE_CONNECTING:
+            string = "Connecting";
             break;
         default:
-            string = "ENAP_T_<> Unknown!";
+            string = "E2NAP_STATE_<> Unknown!";
             break;
     }
 

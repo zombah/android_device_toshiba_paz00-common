@@ -377,6 +377,11 @@ error:
     goto finally;
 }
 
+void ResetHotswap(void)
+{
+    s_simRemoved = 0;
+}
+
 void onSimHotswap(const char *s)
 {
     if (strcmp ("*EESIMSWAP:0", s) == 0) {
@@ -389,12 +394,14 @@ void onSimHotswap(const char *s)
          */
         setRadioState(RADIO_STATE_SIM_NOT_READY);
         setRadioState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, setPollSIMState, (void *) 0, NULL);
     } else if (strcmp ("*EESIMSWAP:1", s) == 0) {
         ALOGD("%s() SIM Inserted", __func__);
         s_simRemoved = 0;
         set_pending_hotswap(1);
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, setPollSIMState, (void *) 1, NULL);
     } else
-        ALOGD("%s() Uknown Hot Swap Event: %s", __func__, s);
+        ALOGD("%s() Unknown SIM Hot Swap Event: %s", __func__, s);
 }
 
 /**
@@ -680,6 +687,24 @@ static void freeCardStatus(RIL_CardStatus_v6 *p_card_status) {
     free(p_card_status);
 }
 
+/* Subscribe to SIM State Reporting.
+ *   Enable SIM state reporting on the format *ESIMSR: <sim_state>
+ */
+void setPollSIMState(void *param)
+{
+    static int enabled = 0;
+
+    if (((int) param == 1) && (enabled == 0)) {
+        at_send_command("AT*ESIMSR=1");
+        enabled = 1;
+        ALOGD("%s() Enabled SIM status reporting", __func__);
+    } else if (((int) param == 0) && (enabled == 1)) {
+        at_send_command("AT*ESIMSR=0");
+        enabled = 0;
+        ALOGD("%s() Disabled SIM status reporting", __func__);
+    }
+}
+
 /**
  * SIM ready means any commands that access the SIM will work, including:
  *  AT+CPIN, AT+CSMS, AT+CNMI, AT+CRSM
@@ -705,8 +730,12 @@ void pollSIMState(void *param)
     case SIM_PUK2_PERM_BLOCKED:
     case SIM_READY:
         setRadioState(RADIO_STATE_SIM_READY);
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, setPollSIMState, (void *) 1, NULL);
         return;
     case SIM_ABSENT:
+        setRadioState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, setPollSIMState, (void *) 0, NULL);
+        return;
     case SIM_PIN:
     case SIM_PUK:
     case SIM_NETWORK_PERSO:
@@ -724,6 +753,7 @@ void pollSIMState(void *param)
     /* pass through, do not break */
     default:
         setRadioState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, setPollSIMState, (void *) 1, NULL);
         return;
     }
 }

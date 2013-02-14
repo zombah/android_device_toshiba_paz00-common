@@ -42,6 +42,7 @@
 #include <utils/Log.h>
 
 #include "u300-ril.h"
+#include "u300-ril-device.h"
 #include "net-utils.h"
 
 #define getNWType(data) ((data) ? (data) : "IP")
@@ -52,11 +53,14 @@ static char *ucs2StringCreate(const char *String);
 /* Last pdp fail cause */
 static int s_lastPdpFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
 
-#define MBM_ENAP_WAIT_TIME 17*5	/* loops to wait CONNECTION aprox 17s */
+#define MBM_ENAP_CONNECT_TIME 180      /* loops to wait for CONNECTION approx 180s */
+#define MBM_ENAP_DISCONNECT_TIME 60   /* loops to wait for DISCONNECTION approx 60s */
 
 static pthread_mutex_t s_e2nap_mutex = PTHREAD_MUTEX_INITIALIZER;
-static int s_e2napState = -1;
-static int s_e2napCause = -1;
+static int s_e2napState = E2NAP_STATE_UNKNOWN;
+static int s_e2napCause = E2NAP_CAUSE_UNKNOWN;
+static int s_DeactCalled = 0;
+static int s_ActiveCID = -1;
 
 static int parse_ip_information(char** addresses, char** gateways, char** dnses, in_addr_t* addr, in_addr_t* gateway)
 {
@@ -130,7 +134,7 @@ static int parse_ip_information(char** addresses, char** gateways, char** dnses,
                 *addresses = strdup(address);
             else {
                 tmp_pointer = realloc(*addresses,
-                        strlen(address) + strlen(*addresses) + 1);
+                        strlen(address) + strlen(*addresses) + 2);
                 if (NULL == tmp_pointer) {
                     ALOGE("%s() Failed to allocate memory for addresses", __func__);
                     goto error;
@@ -150,7 +154,7 @@ static int parse_ip_information(char** addresses, char** gateways, char** dnses,
                 *gateways = strdup(address);
             else {
                 tmp_pointer = realloc(*gateways,
-                        strlen(address) + strlen(*gateways) + 1);
+                        strlen(address) + strlen(*gateways) + 2);
                 if (NULL == tmp_pointer) {
                     ALOGE("%s() Failed to allocate memory for gateways", __func__);
                     goto error;
@@ -172,7 +176,7 @@ static int parse_ip_information(char** addresses, char** gateways, char** dnses,
                 *dnses = strdup(address);
             else if (dnscnt == 2) {
                 tmp_pointer = realloc(*dnses,
-                        strlen(address) + strlen(*dnses) + 1);
+                        strlen(address) + strlen(*dnses) + 2);
                 if (NULL == tmp_pointer) {
                     ALOGE("%s() Failed to allocate memory for dnses", __func__);
                     goto error;
@@ -234,10 +238,10 @@ void requestOrSendPDPContextList(RIL_Token *token)
     if (err < 0)
         goto error;
 
-    response.cid = cid;
+    response.cid = s_ActiveCID;
 
-    if (e2napState == E2NAP_ST_CONNECTED)
-        response.active = 1;
+    if (e2napState == E2NAP_STATE_CONNECTED)
+        response.active = 2;
 
     err = at_tok_nextstr(&line, &type);
     if (err < 0)
@@ -254,22 +258,26 @@ void requestOrSendPDPContextList(RIL_Token *token)
     atresponse = NULL;
 
     /* TODO: Check if we should check ip for a specific CID instead */
-    if (parse_ip_information(&addresses, &gateways, &dnses, &addr, &gateway) < 0) {
-           ALOGE("%s() Failed to parse network interface data", __func__);
-           goto error;
+    if (e2napState == E2NAP_STATE_CONNECTED) {
+        if (parse_ip_information(&addresses, &gateways, &dnses, &addr, &gateway) < 0) {
+            ALOGE("%s() Failed to parse network interface data", __func__);
+            goto error;
+        }
+        response.addresses = addresses;
+        response.gateways = gateways;
+        response.dnses = dnses;
+        response.suggestedRetryTime = -1;
     }
-
-    response.addresses = addresses;
-    response.gateways = gateways;
-    response.dnses = dnses;
-    response.suggestedRetryTime = -1;
 
     if (token != NULL)
         RIL_onRequestComplete(*token, RIL_E_SUCCESS, &response,
                 sizeof(RIL_Data_Call_Response_v6));
-    else
+    else {
+        response.status = s_lastPdpFailCause;
+        response.suggestedRetryTime = -1;
         RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, &response,
                 sizeof(RIL_Data_Call_Response_v6));
+    }
 
     free(addresses);
     free(gateways);
@@ -305,7 +313,7 @@ int getE2NAPFailCause(void)
     int e2napCause = getE2napCause();
     int e2napState = getE2napState();
 
-    if (e2napState == E2NAP_ST_CONNECTED)
+    if (e2napState == E2NAP_STATE_CONNECTED)
         return 0;
 
     return e2napCause;
@@ -325,12 +333,36 @@ void requestPDPContextList(void *data, size_t datalen, RIL_Token t)
     requestOrSendPDPContextList(&t);
 }
 
+static int disconnect(void)
+{
+    int e2napState, i, err;
+
+    err = at_send_command("AT*ENAP=0");
+    if (err != AT_NOERROR && at_get_error_type(err) != CME_ERROR)
+        return -1;
+
+    for (i = 0; i < MBM_ENAP_DISCONNECT_TIME * 5; i++) {
+        e2napState = getE2napState();
+        if ((e2napState == E2NAP_STATE_DISCONNECTED) ||
+                (e2napState == E2NAP_STATE_UNKNOWN) ||
+                (RADIO_STATE_UNAVAILABLE == getRadioState()))
+            break;
+        usleep(200 * 1000);
+    }
+    return 0;
+}
+
 void mbm_check_error_cause(void)
 {
     int e2napCause = getE2napCause();
     int e2napState = getE2napState();
 
-    if ((e2napCause < E2NAP_C_SUCCESS) || (e2napState == E2NAP_ST_CONNECTED)) {
+    if (e2napState == E2NAP_STATE_CONNECTED) {
+        s_lastPdpFailCause = PDP_FAIL_NONE;
+        return;
+    }
+
+    if ((e2napCause < E2NAP_CAUSE_SUCCESS)) {
         s_lastPdpFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
         return;
     }
@@ -342,19 +374,28 @@ void mbm_check_error_cause(void)
     if (e2napCause >= GRPS_SEM_INCORRECT_MSG
             && e2napCause <= GPRS_MSG_NOT_COMP_PROTO_STATE) {
         s_lastPdpFailCause = PDP_FAIL_PROTOCOL_ERRORS;
-        ALOGD("Connection error: %s cause %s", e2napStateToString(e2napState),
+        ALOGD("Connection error: %s cause: %s", e2napStateToString(e2napState),
                 errorCauseToString(e2napCause));
         return;
     }
 
     if (e2napCause == GPRS_PROTO_ERROR_UNSPECIFIED) {
         s_lastPdpFailCause = PDP_FAIL_PROTOCOL_ERRORS;
-        ALOGD("Connection error: %s cause %s", e2napStateToString(e2napState),
+        ALOGD("Connection error: %s cause: %s", e2napStateToString(e2napState),
                 errorCauseToString(e2napCause));
         return;
     }
 
+    ALOGD("Connection state: %s cause: %s", e2napStateToString(e2napState),
+            errorCauseToString(e2napCause));
+
     switch (e2napCause) {
+    case E2NAP_CAUSE_GPRS_ATTACH_NOT_POSSIBLE:
+        s_lastPdpFailCause = PDP_FAIL_SIGNAL_LOST;
+        break;
+    case E2NAP_CAUSE_NO_SIGNAL_CONN:
+        s_lastPdpFailCause = PDP_FAIL_ACTIVATION_REJECT_UNSPECIFIED;
+        break;
     case GPRS_OP_DETERMINED_BARRING:
         s_lastPdpFailCause = PDP_FAIL_OPERATOR_BARRED;
         break;
@@ -389,7 +430,6 @@ void mbm_check_error_cause(void)
         s_lastPdpFailCause = PDP_FAIL_NSAPI_IN_USE;
         break;
     default:
-        ALOGD("Unknown connection error: %d", e2napCause);
         break;
     }
 }
@@ -546,17 +586,14 @@ void requestSetupDefaultPDP(void *data, size_t datalen, RIL_Token t)
 
     RIL_Data_Call_Response_v6 response;
 
+    int e2napState = getE2napState();
     int err = -1;
-    int cme_err, i;
-
-    int e2napState = setE2napState(-1);
-    int e2napCause = setE2napCause(-1);
+    int cme_err, i, prof;
 
     (void) data;
     (void) datalen;
 
-    memset(&response, 0, sizeof(response));
-
+    prof = atoi(((const char **) data)[1]);
     apn = ((const char **) data)[2];
     user = ((const char **) data)[3];
     pass = ((const char **) data)[4];
@@ -565,10 +602,57 @@ void requestSetupDefaultPDP(void *data, size_t datalen, RIL_Token t)
 
     s_lastPdpFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
 
+    memset(&response, 0, sizeof(response));
+    response.ifname = ril_iface;
+    response.cid = prof + 1;
+    response.active = 0;
+    response.type = (char *) type;
+    response.suggestedRetryTime = -1;
+
+    /* Handle case where Android framework tries to setup multiple PDPs
+       when sending/receiving MMS. Tear down the default context if any
+       attempt is made to setup a new context with different DataProfile.
+       Requires changes to Android framework (RILConstants.java and
+       GsmDataConnectionTracker.java). This need to be in place until the
+       framework properly handles priorities on APNs */
+    if (e2napState > E2NAP_STATE_DISCONNECTED) {
+        if (prof > RIL_DATA_PROFILE_DEFAULT) {
+            ALOGD("%s() tearing down default cid:%d to allow cid:%d",
+                        __func__, s_ActiveCID, prof + 1);
+            s_DeactCalled = 1;
+            if (disconnect()) {
+                goto down;
+            } else {
+                e2napState = getE2napState();
+
+                if (e2napState != E2NAP_STATE_DISCONNECTED)
+                    goto error;
+
+                if (ifc_init())
+                    goto error;
+
+                if (ifc_down(ril_iface))
+                    goto error;
+
+                ifc_close();
+                requestOrSendPDPContextList(NULL);
+            }
+        } else {
+            ALOGE("%s() denying data connection to APN '%s' Multiple PDP not supported!",
+                                __func__, apn);
+            response.status = PDP_FAIL_INSUFFICIENT_RESOURCES;
+            RIL_onRequestComplete(t, RIL_E_SUCCESS, &response, sizeof(response));
+            return;
+        }
+    }
+
+down:
+    e2napState = setE2napState(E2NAP_STATE_UNKNOWN);
+
     ALOGD("%s() requesting data connection to APN '%s'", __func__, apn);
 
     if (ifc_init()) {
-        ALOGE("%s() FAILED to set up ifc!", __func__);
+        ALOGE("%s() Failed to set up ifc!", __func__);
         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
         return;
     }
@@ -600,11 +684,11 @@ void requestSetupDefaultPDP(void *data, size_t datalen, RIL_Token t)
         goto error;
     }
 
-    for (i = 0; i < MBM_ENAP_WAIT_TIME; i++) {
+    for (i = 0; i < MBM_ENAP_CONNECT_TIME * 5; i++) {
         e2napState = getE2napState();
-
-        if (e2napState == E2NAP_ST_CONNECTED
-                || e2napState == E2NAP_ST_DISCONNECTED) {
+        if (e2napState == E2NAP_STATE_CONNECTED
+                || e2napState == E2NAP_STATE_DISCONNECTED
+                || RADIO_STATE_UNAVAILABLE == getRadioState()) {
             ALOGD("%s() %s", __func__, e2napStateToString(e2napState));
             break;
         }
@@ -612,9 +696,8 @@ void requestSetupDefaultPDP(void *data, size_t datalen, RIL_Token t)
     }
 
     e2napState = getE2napState();
-    e2napCause = getE2napCause();
 
-    if (e2napState == E2NAP_ST_DISCONNECTED)
+    if (e2napState != E2NAP_STATE_CONNECTED)
         goto error;
 
     if (parse_ip_information(&addresses, &gateways, &dnses, &addr, &gateway) < 0) {
@@ -622,33 +705,32 @@ void requestSetupDefaultPDP(void *data, size_t datalen, RIL_Token t)
         goto error;
     }
 
-    e2napState = getE2napState();
     response.addresses = addresses;
     response.gateways = gateways;
     response.dnses = dnses;
     ALOGI("%s() Setting up interface %s,%s,%s",
         __func__, response.addresses, response.gateways, response.dnses);
 
-    if (e2napState == E2NAP_ST_DISCONNECTED)
-        goto error; /* we got disconnected */
+    e2napState = getE2napState();
 
-    response.ifname = ril_iface;
-    response.active = 2;
-    response.type = (char *) type;
-    response.status = 0;
-    response.cid = 1;
-    response.suggestedRetryTime = -1;
+    if (e2napState == E2NAP_STATE_DISCONNECTED)
+        goto error; /* we got disconnected */
 
     /* Don't use android netutils. We use our own and get the routing correct.
      * Carl Nordbeck */
     if (ifc_configure(ril_iface, addr, gateway))
         ALOGE("%s() Failed to configure the interface %s", __func__, ril_iface);
 
-    e2napState = getE2napState();
     ALOGI("IP Address %s, %s", addresses, e2napStateToString(e2napState));
 
-    if (e2napState == E2NAP_ST_DISCONNECTED)
+    e2napState = getE2napState();
+
+    if (e2napState == E2NAP_STATE_DISCONNECTED)
         goto error; /* we got disconnected */
+
+    response.active = 2;
+    response.status = 0;
+    s_ActiveCID = response.cid;
 
     RIL_onRequestComplete(t, RIL_E_SUCCESS, &response, sizeof(response));
 
@@ -660,24 +742,13 @@ void requestSetupDefaultPDP(void *data, size_t datalen, RIL_Token t)
 
 error:
 
-    response.status = getE2NAPFailCause();
-
     mbm_check_error_cause();
+    response.status = s_lastPdpFailCause;
 
     /* Restore enap state and wait for enap to report disconnected*/
-    at_send_command("AT*ENAP=0");
-    for (i = 0; i < MBM_ENAP_WAIT_TIME; i++) {
-        e2napState = getE2napState();
-        if (e2napState == E2NAP_ST_DISCONNECTED)
-            break;
+    disconnect();
 
-        usleep(200 * 1000);
-    }
-
-    if (response.status > 0)
-        RIL_onRequestComplete(t, RIL_E_SUCCESS, &response, sizeof(response));
-    else
-        RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+    RIL_onRequestComplete(t, RIL_E_SUCCESS, &response, sizeof(response));
 
     free(addresses);
     free(gateways);
@@ -689,59 +760,28 @@ error:
  */
 void requestDeactivateDefaultPDP(void *data, size_t datalen, RIL_Token t)
 {
-    ATResponse *p_response = NULL;
-    int enap = 0;
-    int err, i;
-    char *line;
-    (void) data;
+    int e2napState = getE2napState();
+    int cid = atoi(((const char **) data)[0]);
     (void) datalen;
 
-    err = at_send_command_singleline("AT*ENAP?", "*ENAP:", &p_response);
-    if (err != AT_NOERROR)
-        goto error;
+    if (cid != s_ActiveCID) {
+        ALOGD("%s() Not tearing down cid:%d since cid:%d is active", __func__,
+                cid, s_ActiveCID);
+        goto done;
+    }
 
-    line = p_response->p_intermediates->line;
-    err = at_tok_start(&line);
-    if (err < 0)
-        goto error;
+    s_DeactCalled = 1;
 
-    err = at_tok_nextint(&line, &enap);
-    if (err < 0)
-        goto error;
+    if (e2napState == E2NAP_STATE_CONNECTING)
+        ALOGW("%s() Tear down connection while connection setup in progress", __func__);
 
-    if (enap == ENAP_T_CONN_IN_PROG)
-        ALOGE("%s() Tear down connection while connection setup in progress", __func__);
-
-    if (enap == ENAP_T_CONNECTED) {
-        err = at_send_command("AT*ENAP=0"); /* TODO: can return CME error */
-
-        if (err != AT_NOERROR && at_get_error_type(err) != CME_ERROR)
+    if (e2napState != E2NAP_STATE_DISCONNECTED) {
+        if (disconnect())
             goto error;
-        for (i = 0; i < MBM_ENAP_WAIT_TIME; i++) {
-            at_response_free(p_response);
-            p_response = NULL;
-            err = at_send_command_singleline("AT*ENAP?", "*ENAP:", &p_response);
 
-            if (err != AT_NOERROR)
-                goto error;
+        e2napState = getE2napState();
 
-            line = p_response->p_intermediates->line;
-
-            err = at_tok_start(&line);
-            if (err < 0)
-                goto error;
-
-            err = at_tok_nextint(&line, &enap);
-            if (err < 0)
-                goto error;
-
-            if (enap == 0)
-                break;
-
-            sleep(1);
-        }
-
-        if (enap != ENAP_T_NOT_CONNECTED)
+        if (e2napState != E2NAP_STATE_DISCONNECTED)
             goto error;
 
         /* Bring down the interface as well. */
@@ -754,13 +794,12 @@ void requestDeactivateDefaultPDP(void *data, size_t datalen, RIL_Token t)
         ifc_close();
     }
 
+done:
     RIL_onRequestComplete(t, RIL_E_SUCCESS, NULL, 0);
-    at_response_free(p_response);
     return;
 
 error:
     RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-    at_response_free(p_response);
 }
 
 /**
@@ -820,8 +859,8 @@ void onConnectionStateChanged(const char *s)
         return;
 
     err = at_tok_nextint((char **) &s, &m_state);
-    if (err < 0 || m_state < E2NAP_ST_DISCONNECTED
-            || m_state > E2NAP_ST_CONNECTED) {
+    if (err < 0 || m_state < E2NAP_STATE_DISCONNECTED
+            || m_state > E2NAP_STATE_CONNECTING) {
         m_state = -1;
         return;
     }
@@ -829,23 +868,23 @@ void onConnectionStateChanged(const char *s)
     err = at_tok_nextint((char **) &s, &m_cause);
     /* The <cause> will only be indicated/considered when <state>
      * is disconnected */
-    if (err < 0 || m_cause < E2NAP_C_SUCCESS || m_cause > E2NAP_C_MAXIMUM
-            || m_state != E2NAP_ST_DISCONNECTED)
+    if (err < 0 || m_cause < E2NAP_CAUSE_SUCCESS || m_cause > E2NAP_CAUSE_MAXIMUM
+            || m_state != E2NAP_STATE_DISCONNECTED)
         m_cause = -1;
 
     if (commas == 3) {
         int m_state2 = -1, m_cause2 = -1;
         err = at_tok_nextint((char **) &s, &m_state2);
-        if (err < 0 || m_state2 < E2NAP_ST_DISCONNECTED
-                || m_state2 > E2NAP_ST_CONNECTED) {
+        if (err < 0 || m_state2 < E2NAP_STATE_DISCONNECTED
+                || m_state2 > E2NAP_STATE_CONNECTED) {
             m_state = -1;
             return;
         }
 
-        if (m_state2 == E2NAP_ST_DISCONNECTED) {
+        if (m_state2 == E2NAP_STATE_DISCONNECTED) {
             err = at_tok_nextint((char **) &s, &m_cause2);
-            if (err < 0 || m_cause2 < E2NAP_C_SUCCESS
-                    || m_cause2 > E2NAP_C_MAXIMUM) {
+            if (err < 0 || m_cause2 < E2NAP_CAUSE_SUCCESS
+                    || m_cause2 > E2NAP_CAUSE_MAXIMUM) {
                 m_cause2 = -1;
             }
         }
@@ -854,17 +893,17 @@ void onConnectionStateChanged(const char *s)
             ALOGE("%s() failed to take e2nap mutex: %s", __func__,
                     strerror(err));
 
-        if (m_state == E2NAP_ST_CONNECTING || m_state2 == E2NAP_ST_CONNECTING) {
-            s_e2napState = E2NAP_ST_CONNECTING;
-        } else if (m_state == E2NAP_ST_CONNECTED) {
+        if (m_state == E2NAP_STATE_CONNECTING || m_state2 == E2NAP_STATE_CONNECTING) {
+            s_e2napState = E2NAP_STATE_CONNECTING;
+        } else if (m_state == E2NAP_STATE_CONNECTED) {
             s_e2napCause = m_cause2;
-            s_e2napState = E2NAP_ST_CONNECTED;
-        } else if (m_state2 == E2NAP_ST_CONNECTED) {
+            s_e2napState = E2NAP_STATE_CONNECTED;
+        } else if (m_state2 == E2NAP_STATE_CONNECTED) {
             s_e2napCause = m_cause;
-            s_e2napState = E2NAP_ST_CONNECTED;
+            s_e2napState = E2NAP_STATE_CONNECTED;
         } else {
             s_e2napCause = m_cause;
-            s_e2napState = E2NAP_ST_DISCONNECTED;
+            s_e2napState = E2NAP_STATE_DISCONNECTED;
         }
         if ((err = pthread_mutex_unlock(&s_e2nap_mutex)) != 0)
             ALOGE("%s() failed to release e2nap mutex: %s", __func__,
@@ -882,19 +921,22 @@ void onConnectionStateChanged(const char *s)
 
     }
 
-    ALOGD("%s() %s", e2napStateToString(m_state), __func__);
-    if (m_state != E2NAP_ST_CONNECTING)
+    mbm_check_error_cause();
+
+    if (m_state == E2NAP_STATE_DISCONNECTED) {
+        /* Bring down the interface as well. */
+        if (!(ifc_init())) {
+            ifc_down(ril_iface);
+            ifc_close();
+        } else
+            ALOGE("%s() Failed to set up ifc!", __func__);
+    }
+
+    if ((m_state == E2NAP_STATE_DISCONNECTED) && (s_DeactCalled == 0)) {
         enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, onPDPContextListChanged, NULL,
                 NULL);
-
-    /* Make system request network information. This will allow RIL to report any new
-     * technology made available from connection.
-     */
-    if (E2NAP_ST_CONNECTED == m_state)
-        RIL_onUnsolicitedResponse(
-                RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
-
-    mbm_check_error_cause();
+    }
+    s_DeactCalled = 0;
 }
 
 int getE2napState(void)

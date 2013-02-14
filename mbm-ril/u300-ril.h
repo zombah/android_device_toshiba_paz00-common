@@ -24,8 +24,14 @@
 #ifndef U300_RIL_H
 #define U300_RIL_H 1
 
+#define enqueueRILEvent(isPrio, callback, \
+                     param, relativeTime) \
+        enqueueRILEventName(isPrio, callback, \
+                     param, relativeTime, #callback)
+
 void getScreenStateLock(void);
 int getScreenState(void);
+void setScreenState(int screenState);
 void releaseScreenStateLock(void);
 
 extern char* ril_iface;
@@ -34,13 +40,17 @@ extern const struct RIL_Env *s_rilenv;
 #define RIL_onRequestComplete(t, e, response, responselen) s_rilenv->OnRequestComplete(t,e, response, responselen)
 #define RIL_onUnsolicitedResponse(a,b,c) s_rilenv->OnUnsolicitedResponse(a,b,c)
 
-void enqueueRILEvent(int isPrio, void (*callback) (void *param),
-                     void *param, const struct timespec *relativeTime);
+void enqueueRILEventName(int isPrio, void (*callback) (void *param),
+                     void *param, const struct timespec *relativeTime, char *name);
 
 #define RIL_EVENT_QUEUE_NORMAL 0
 #define RIL_EVENT_QUEUE_PRIO 1
 #define RIL_EVENT_QUEUE_ALL 2
 
 #define RIL_CID_IP 1
+
+/* Maximum number of neighborhood cells is set based on AT specification.
+ * Can handle maximum of 16, including the current cell. */
+#define MAX_NUM_NEIGHBOR_CELLS 15
 
 #endif

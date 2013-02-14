@@ -31,8 +31,8 @@
 #include <linux/route.h>
 #include <linux/wireless.h>
 
-#define LOG_TAG "mbm-netutils"
-#include <cutils/log.h>
+#define LOG_TAG "RIL"
+#include <utils/Log.h>
 #include <cutils/properties.h>
 
 static int ifc_ctl_sock = -1;
@@ -48,9 +48,11 @@ static const char *ipaddr_to_string(in_addr_t addr)
 int ifc_init(void)
 {
     if (ifc_ctl_sock == -1) {
-	ifc_ctl_sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (ifc_ctl_sock < 0)
-	    ALOGE("%s() socket() failed: %s", __func__, strerror(errno));
+        ifc_ctl_sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (ifc_ctl_sock < 0) {
+            ALOGE("%s() socket() failed: %s", __func__, strerror(errno));
+            ifc_ctl_sock = -1;
+        }
     }
     return ifc_ctl_sock < 0 ? -1 : 0;
 }
@@ -58,8 +60,8 @@ int ifc_init(void)
 void ifc_close(void)
 {
     if (ifc_ctl_sock != -1) {
-	(void) close(ifc_ctl_sock);
-	ifc_ctl_sock = -1;
+        (void) close(ifc_ctl_sock);
+        ifc_ctl_sock = -1;
     }
 }
 
@@ -76,7 +78,7 @@ static int ifc_set_flags(const char *name, unsigned set, unsigned clr)
     ifc_init_ifr(name, &ifr);
 
     if (ioctl(ifc_ctl_sock, SIOCGIFFLAGS, &ifr) < 0)
-	return -1;
+        return -1;
     ifr.ifr_flags = (ifr.ifr_flags & (~clr)) | set;
     return ioctl(ifc_ctl_sock, SIOCSIFFLAGS, &ifr);
 }
@@ -88,7 +90,7 @@ int ifc_up(const char *name)
 
 int ifc_down(const char *name)
 {
-    return ifc_set_flags(name, 0, IFF_UP);
+    return ifc_set_flags(name, IFF_NOARP, IFF_UP);
 }
 
 static void init_sockaddr_in(struct sockaddr *sa, in_addr_t addr)
@@ -129,25 +131,25 @@ int ifc_configure(const char *ifname,
     ifc_init();
 
     if (ifc_up(ifname)) {
-	ALOGE("%s() Failed to turn on interface %s: %s", __func__,
-	     ifname,
-	     strerror(errno));
-	ifc_close();
-	return -1;
+        ALOGE("%s() Failed to turn on interface %s: %s", __func__,
+            ifname,
+            strerror(errno));
+        ifc_close();
+        return -1;
     }
     if (ifc_set_addr(ifname, address)) {
-	ALOGE("%s() Failed to set ipaddr %s: %s", __func__,
-	     ipaddr_to_string(address), strerror(errno));
-	ifc_down(ifname);
-	ifc_close();
-	return -1;
+        ALOGE("%s() Failed to set ipaddr %s: %s", __func__,
+            ipaddr_to_string(address), strerror(errno));
+        ifc_down(ifname);
+        ifc_close();
+        return -1;
     }
     if (ifc_set_mask(ifname, netmask)) {
-	ALOGE("%s() failed to set netmask %s: %s", __func__,
-	     ipaddr_to_string(netmask), strerror(errno));
-	ifc_down(ifname);
-	ifc_close();
-	return -1;
+        ALOGE("%s() failed to set netmask %s: %s", __func__,
+            ipaddr_to_string(netmask), strerror(errno));
+        ifc_down(ifname);
+        ifc_close();
+        return -1;
     }
 
     ifc_close();

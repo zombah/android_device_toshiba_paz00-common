@@ -51,7 +51,17 @@ typedef enum {
     NO_SUITABLE_CELL_IN_LOCATION_AREA = 8,
     NETWORK_FAILURE = 9,
     PERSISTEN_LOCATION_UPDATE_REJECT = 10
-} Reg_Deny_DetailReason;
+} CsReg_Deny_DetailReason;
+
+typedef enum {
+    GPRS_NOT_ALLOWED = 7,
+    GPRS_NON_GPRS_NOT_ALLOWED = 8,
+    MS_IDENTITY_UNKNOWN = 9,
+    IMPLICITLY_DETACHED = 10,
+    GPRS_NOT_ALLOWED_PLMN = 14,
+    MSC_TEMPORARILY_UNAVAILABLE = 16,
+    NO_PDP_CONTEXT_ACTIVATED = 40,
+} PsReg_Deny_DetailReason;
 
 typedef enum {
     NO_RESULT,      /* No intermediate response expected. */

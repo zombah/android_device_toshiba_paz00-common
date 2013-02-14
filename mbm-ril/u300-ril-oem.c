@@ -26,6 +26,7 @@
 #include "u300-ril.h"
 #include "atchannel.h"
 #include "at_tok.h"
+#include "u300-ril-device.h"
 
 #define LOG_TAG "RIL"
 #include <utils/Log.h>
@@ -59,6 +60,7 @@ void requestOEMHookStrings(void *data, size_t datalen, RIL_Token t)
     ATLine *atline;
     int linecount;
     int err;
+    char *currtime = NULL;
 
     ALOGD("%s() got OEM_HOOK_STRINGS: %8p %lu", __func__, data, (long) datalen);
 
@@ -69,7 +71,23 @@ void requestOEMHookStrings(void *data, size_t datalen, RIL_Token t)
 
     /* Only take the first string in the array for now */
     cur = (const char **) data;
+
+    /* Check if this HOOK is a set clock command */
+    if (NULL != strstr(*cur, "AT+CCLK=")) {
+        /* Read time first to make sure an update is necessary */
+        currtime = getTime();
+        if (NULL == currtime)
+            goto error;
+        if (NULL != strstr(*cur, currtime)) {
+            ALOGW("%s() Skipping setting same time again!", __func__);
+            err = at_send_command_raw("AT", &atresponse);
+            goto fake;
+        }
+    }
+
     err = at_send_command_raw(*cur, &atresponse);
+fake:
+    free(currtime);
 
     if ((err != AT_NOERROR && at_get_error_type(err) == AT_ERROR)
             || atresponse == NULL || atresponse->finalResponse == NULL)

@@ -23,6 +23,7 @@
 #include <telephony/ril.h>
 #include "atchannel.h"
 #include "at_tok.h"
+#include "misc.h"
 
 #include "u300-ril-device.h"
 #include "u300-ril-messaging.h"
@@ -37,6 +38,200 @@
 #define RADIO_POWER_ATTEMPTS 10
 static RIL_RadioState sState = RADIO_STATE_UNAVAILABLE;
 static pthread_mutex_t s_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+static char** s_deviceInfo = NULL;
+static pthread_mutex_t s_deviceInfo_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+char *getTime(void)
+{
+    ATResponse *atresponse = NULL;
+    int err;
+    char *line;
+    char *currtime = NULL;
+    char *resp = NULL;
+
+    err = at_send_command_singleline("AT+CCLK?", "+CCLK:", &atresponse);
+
+    if (err != AT_NOERROR)
+        goto error;
+
+    line = atresponse->p_intermediates->line;
+
+    err = at_tok_start(&line);
+    if (err < 0)
+        goto error;
+
+    /* Read current time */
+    err = at_tok_nextstr(&line, &currtime);
+    if (err < 0)
+        goto error;
+
+    /* Skip the first two digits of year */
+    resp = strdup(currtime+2);
+
+finally:
+    at_response_free(atresponse);
+    return resp;
+
+error:
+    ALOGE("%s() Failed to read current time", __func__);
+    goto finally;
+}
+
+void sendTime(void *p)
+{
+    time_t t;
+    struct tm tm;
+    char *timestr;
+    char *currtime;
+    char str[20];
+    char tz[6];
+    int num[4];
+    int tzi;
+    int i;
+    (void) p;
+
+    tzset();
+    t = time(NULL);
+
+    if (!(localtime_r(&t, &tm)))
+        return;
+    if (!(strftime(tz, 12, "%z", &tm)))
+        return;
+
+    for (i = 0; i < 4; i++)
+        num[i] = tz[i+1] - '0';
+
+    /* convert timezone hours to timezone quarters of hours */
+    tzi = (num[0] * 10 + num[1]) * 4 + (num[2] * 10 + num[3]) / 15;
+    strftime(str, 20, "%y/%m/%d,%T", &tm);
+    asprintf(&timestr, "%s%c%02d", str, tz[0], tzi);
+
+    /* Read time first to make sure an update is necessary */
+    currtime = getTime();
+    if (NULL == currtime)
+        return;
+
+    if (NULL == strstr(currtime, timestr))
+        at_send_command("AT+CCLK=\"%s\"", timestr);
+    else
+        ALOGW("%s() Skipping setting same time again!", __func__);
+
+    free(timestr);
+    free(currtime);
+    return;
+}
+
+void clearDeviceInfo(void)
+{
+    int i = 0;
+    int err;
+
+    if ((err = pthread_mutex_lock(&s_deviceInfo_mutex)) != 0)
+        ALOGE("%s() failed to take device info mutex: %s!", __func__, strerror(err));
+    else {
+        if (s_deviceInfo != NULL) {
+            /* s_deviceInfo list shall end with NULL */
+            while (s_deviceInfo[i] != NULL) {
+                free(s_deviceInfo[i]);
+                i++;
+            }
+            free(s_deviceInfo);
+        }
+
+        if ((err = pthread_mutex_unlock(&s_deviceInfo_mutex)) != 0)
+            ALOGE("%s() failed to release device info mutex: %s!", __func__, strerror(err));
+    }
+}
+
+/* Needs to be called while unsolicited responses are not yet enabled, because
+ * response prefix in at_send_command_multiline calls is "\0".
+ */
+void readDeviceInfo(void)
+{
+    ATResponse *atresponse = NULL;
+    ATLine *line;
+    int linecnt = 0;
+    int err;
+
+    clearDeviceInfo();
+
+    err = at_send_command_multiline("AT*EEVINFO", "\0", &atresponse);
+    if (err != AT_NOERROR) {
+        /* Older device types might implement AT*EVERS instead of *EEVINFO */
+        err = at_send_command_multiline("AT*EVERS", "\0", &atresponse);
+        if (err != AT_NOERROR)
+            return;
+    }
+
+    /* First just count intermediate responses */
+    linecnt = 0;
+    line = atresponse->p_intermediates;
+    while (line) {
+        linecnt++;
+        line = line->p_next;
+    }
+
+    if ((err = pthread_mutex_lock(&s_deviceInfo_mutex)) != 0)
+        ALOGE("%s() failed to take device info mutex: %s!", __func__, strerror(err));
+    else {
+        if (linecnt > 0) {
+            s_deviceInfo = calloc(linecnt + 1, sizeof(char *));
+
+            if (s_deviceInfo) {
+                /* Now read and store the intermediate responses */
+                linecnt = 0;
+                line = atresponse->p_intermediates;
+                while (line) {
+                    s_deviceInfo[linecnt] = strdup(line->line);
+                    if (s_deviceInfo[linecnt])
+                        linecnt++;
+                    else
+                        ALOGW("%s() failed to allocate memory", __func__);
+
+                    line = line->p_next;
+                }
+                /* Mark end of list with NULL */
+                s_deviceInfo[linecnt] = NULL;
+            }
+            else
+                ALOGW("%s() failed to allocate memory", __func__);
+        }
+
+        if ((err = pthread_mutex_unlock(&s_deviceInfo_mutex)) != 0)
+            ALOGE("%s() failed to release device info mutex: %s!", __func__, strerror(err));
+    }
+    at_response_free(atresponse);
+}
+
+char *getDeviceInfo(const char *info)
+{
+    int i = 0;
+    int err;
+    char* resp = NULL;
+
+    if ((err = pthread_mutex_lock(&s_deviceInfo_mutex)) != 0)
+        ALOGE("%s() failed to take device info mutex: %s!", __func__, strerror(err));
+    else {
+        if (s_deviceInfo != NULL) {
+            /* s_deviceInfo list always ends with a NULL */
+            while (s_deviceInfo[i] != NULL) {
+                if (strStartsWith(s_deviceInfo[i], info)) {
+                    resp = calloc(strlen(s_deviceInfo[i]), sizeof(char));
+                    sscanf(s_deviceInfo[i]+strlen(info), "%*s %s", resp);
+                    break;
+                }
+                i++;
+            }
+        }
+        if ((err = pthread_mutex_unlock(&s_deviceInfo_mutex)) != 0)
+            ALOGE("%s() failed to release device info mutex: %s!", __func__, strerror(err));
+    }
+
+    if (resp == NULL)
+        ALOGW("%s() didn't find information for %s", __func__, info);
+
+    return resp;
+}
 
 /**
  * RIL_REQUEST_GET_IMSI
@@ -67,52 +262,22 @@ void requestGetIMSI(void *data, size_t datalen, RIL_Token t)
 void requestDeviceIdentity(void *data, size_t datalen, RIL_Token t)
 {
     (void) data; (void) datalen;
-    ATResponse *atresponse = NULL;
     char* response[4];
-    int err;
-    char* svn;
 
-    /* IMEI */
-    err = at_send_command_numeric("AT+CGSN", &atresponse);
-
-    if (err != AT_NOERROR)
-        goto error;
-
-    response[0] = atresponse->p_intermediates->line;
-
-    /* IMEISV */
-    at_response_free(atresponse);
-    atresponse = NULL;
-    err = at_send_command_multiline("AT*EVERS", "SVN", &atresponse);
-
-    if (err != AT_NOERROR) {
-        err = at_send_command_multiline("AT*EEVINFO", "SVN", &atresponse);
-
-        if (err != AT_NOERROR)
-            goto error;
-    }
-
-    svn = malloc(strlen(atresponse->p_intermediates->line));
-    if (!svn)
-        goto error;
-
-    sscanf(atresponse->p_intermediates->line, "SVN%*s %s", svn);
-    response[1] = svn;
+    response[0] = getDeviceInfo("IMEI Data"); /* IMEI */
+    response[1] = getDeviceInfo("SVN"); /* IMEISV */
 
     /* CDMA not supported */
     response[2] = "";
     response[3] = "";
 
-    RIL_onRequestComplete(t, RIL_E_SUCCESS, &response, sizeof(response));
+    if (response[0] && response[1])
+        RIL_onRequestComplete(t, RIL_E_SUCCESS, &response, sizeof(response));
+    else
+        RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 
-    free(svn);
-
-    at_response_free(atresponse);
-    return;
-
-error:
-    RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-    at_response_free(atresponse);
+    free(response[0]);
+    free(response[1]);
 }
 
 /* Deprecated */
@@ -124,19 +289,15 @@ error:
 void requestGetIMEI(void *data, size_t datalen, RIL_Token t)
 {
     (void) data; (void) datalen;
-    ATResponse *atresponse = NULL;
-    int err;
+    char *imei;
 
-    err = at_send_command_numeric("AT+CGSN", &atresponse);
-
-    if (err != AT_NOERROR)
+    imei = getDeviceInfo("IMEI Data");
+    if (imei)
+        RIL_onRequestComplete(t, RIL_E_SUCCESS, imei, sizeof(char *));
+    else
         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-    else {
-        RIL_onRequestComplete(t, RIL_E_SUCCESS,
-                              atresponse->p_intermediates->line,
-                              sizeof(char *));
-        at_response_free(atresponse);
-    }
+
+    free(imei);
 }
 
 /* Deprecated */
@@ -148,28 +309,16 @@ void requestGetIMEI(void *data, size_t datalen, RIL_Token t)
 void requestGetIMEISV(void *data, size_t datalen, RIL_Token t)
 {
     (void) data; (void) datalen;
-
-    ATResponse *atresponse = NULL;
-    int err;
-    char svn[5];
+    char *svn;
 
     /* IMEISV */
-    err = at_send_command_multiline("AT*EVERS", "SVN", &atresponse);
+    svn = getDeviceInfo("SVN");
+    if (svn)
+        RIL_onRequestComplete(t, RIL_E_SUCCESS, svn, sizeof(char *));
+    else
+        RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 
-    if (err != AT_NOERROR) {
-        err = at_send_command_multiline("AT*EEVINFO", "SVN", &atresponse);
-
-        if (err != AT_NOERROR) {
-            RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-            return;
-        }
-    }
-
-    sscanf(atresponse->p_intermediates->line, "SVN%*s %s", svn);
-
-    at_response_free(atresponse);
-
-    RIL_onRequestComplete(t, RIL_E_SUCCESS, svn, sizeof(char *));
+    free(svn);
 }
 
 /**
@@ -181,29 +330,22 @@ void requestGetIMEISV(void *data, size_t datalen, RIL_Token t)
 void requestBasebandVersion(void *data, size_t datalen, RIL_Token t)
 {
     (void) data; (void) datalen;
-    int err;
-    ATResponse *atresponse = NULL;
-    char *line;
+    char *ver;
 
-    err = at_send_command_singleline("AT+CGMR", "\0", &atresponse);
-
-    if (err != AT_NOERROR) {
-        ALOGE("%s() Error reading Base Band Version", __func__);
+    ver = getDeviceInfo("Protocol FW Version");
+    if (ver)
+        RIL_onRequestComplete(t, RIL_E_SUCCESS, ver, sizeof(char *));
+    else
         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-        return;
-    }
 
-    line = atresponse->p_intermediates->line;
-
-    RIL_onRequestComplete(t, RIL_E_SUCCESS, line, sizeof(char *));
-
-    at_response_free(atresponse);
+    free(ver);
 }
 
 /** Do post- SIM ready initialization. */
 void onSIMReady(void *p)
 {
     int err = 0;
+    int screenState;
     (void) p;
 
     /* Check if ME is ready to set preferred message storage */
@@ -233,34 +375,15 @@ void onSIMReady(void *p)
     */
     at_send_command("AT+CNMI=2,2,2,1,0");
 
-    /* Subscribe to network registration events.
-     *  n = 2 - Enable network registration and location information
-     *          unsolicited result code +CREG: <stat>[,<lac>,<ci>]
-     */
-    err = at_send_command("AT+CREG=2");
-    if (err != AT_NOERROR) {
-        /* Some handsets -- in tethered mode -- don't support CREG=2. */
-        at_send_command("AT+CREG=1");
-    }
-
     /* Subscribe to network status events */
     at_send_command("AT*E2REG=1");
-
-    /* Subscribe to Packet Domain Event Reporting.
-     *  mode = 1 - Discard unsolicited result codes when ME-TE link is reserved
-     *             (e.g. in on-line data mode); otherwise forward them directly
-     *             to the TE.
-     *   bfr = 0 - MT buffer of unsolicited result codes defined within this
-     *             command is cleared when <mode> 1 is entered.
-     */
-    at_send_command("AT+CGEREP=1,0");
 
     /* Configure Short Message (SMS) Format
      *  mode = 0 - PDU mode.
      */
     at_send_command("AT+CMGF=0");
 
-    /* Subscribe to ST-Ericsson time zone/NITZ reporting.
+    /* Subscribe to time zone/NITZ reporting.
      *
      */
     err = at_send_command("AT*ETZR=3");
@@ -269,12 +392,18 @@ void onSIMReady(void *p)
         at_send_command("AT*ETZR=2");
     }
 
-    /* Configure Mobile Equipment Event Reporting.
-     *  mode = 3 - Forward unsolicited result codes directly to the TE;
-     *             There is no inband technique used to embed result codes
-     *             and data when TA is in on-line data mode.
+    /* Delete Internet Account Configuration.
+     *  Some FW versions has an issue, whereby internet account configuration
+     *  needs to be cleared explicitly.
      */
-    at_send_command("AT+CMER=3,0,0,1");
+    at_send_command("AT*EIAD=0,0");
+
+    /* Make sure currect screenstate is set */
+    getScreenStateLock();
+    screenState = getScreenState();
+    setScreenState(screenState);
+    releaseScreenStateLock();
+
 }
 
 static const char *radioStateToString(RIL_RadioState radioState)
@@ -311,6 +440,9 @@ static const char *radioStateToString(RIL_RadioState radioState)
         break;
     case RADIO_STATE_NV_READY:
         state = "RADIO_STATE_NV_READY";
+        break;
+    case RADIO_STATE_ON:
+        state = "RADIO_STATE_ON";
         break;
     default:
         state = "RADIO_STATE_<> Unknown!";

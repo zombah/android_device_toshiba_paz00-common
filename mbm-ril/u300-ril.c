@@ -57,7 +57,7 @@
 #define LOG_TAG "RIL"
 #include <utils/Log.h>
 
-#define RIL_VERSION_STRING "MBM u300-ril 4.0.0.0-alpha"
+#define RIL_VERSION_STRING "MBM u300-ril 4.0.0.0-beta"
 
 #define MAX_AT_RESPONSE 0x1000
 
@@ -68,8 +68,9 @@
         ? (a).tv_nsec op (b).tv_nsec \
         : (a).tv_sec op (b).tv_sec)
 
-#define TIMEOUT_SEARCH_FOR_TTY 5 /* Poll every Xs for the port*/
-#define TIMEOUT_EMRDY 10 /* Module should respond at least within 10s */
+#define TIMEOUT_SEARCH_FOR_TTY 1 /* Poll every Xs for the port*/
+#define TIMEOUT_EMRDY 15 /* Module should respond at least within 15s */
+#define TIMEOUT_DEVICE_REMOVED 3
 #define MAX_BUF 1024
 
 /*** Global Variables ***/
@@ -113,6 +114,7 @@ typedef struct RILRequest {
 typedef struct RILEvent {
     void (*eventCallback) (void *param);
     void *param;
+    char *name;
     struct timespec abstime;
     struct RILEvent *next;
     struct RILEvent *prev;
@@ -159,19 +161,25 @@ static const struct timespec TIMEVAL_0 = { 0, 0 };
  * 0 = the "normal" queue, 1 = prio queue and 2 = both. If only one queue
  * is present, then the event will be inserted into that queue.
  */
-void enqueueRILEvent(int isPrio, void (*callback) (void *param),
-                     void *param, const struct timespec *relativeTime)
+void enqueueRILEventName(int isPrio, void (*callback) (void *param),
+                     void *param, const struct timespec *relativeTime, char *name)
 {
     int err;
     struct timespec ts;
     char done = 0;
     RequestQueue *q = NULL;
 
+    if (NULL == callback) {
+        ALOGE("%s() callback is NULL, event not queued!", __func__);
+        return;
+    }
+
     RILEvent *e = malloc(sizeof(RILEvent));
     memset(e, 0, sizeof(RILEvent));
 
     e->eventCallback = callback;
     e->param = param;
+    e->name = name;
 
     if (relativeTime == NULL) {
         relativeTime = alloca(sizeof(struct timeval));
@@ -261,11 +269,6 @@ int getScreenState(void)
     return s_screenState;
 }
 
-void setScreenState(bool screenIsOn)
-{
-    s_screenState = screenIsOn;
-}
-
 void releaseScreenStateLock(void)
 {
     int err;
@@ -276,55 +279,49 @@ void releaseScreenStateLock(void)
 
 }
 
+void setScreenState(int screenState)
+{
+    if (screenState == 1) {
+        /* Screen is on - be sure to enable all unsolicited notifications again. */
+        at_send_command("AT+CREG=2");
+        at_send_command("AT+CGREG=2");
+        at_send_command("AT+CGEREP=1,0");
+
+        isSimSmsStorageFull(NULL);
+        pollSignalStrength((void *)-1);
+
+        at_send_command("AT+CMER=3,0,0,1");
+
+    } else if (screenState == 0) {
+        /* Screen is off - disable all unsolicited notifications. */
+        at_send_command("AT+CREG=0");
+        at_send_command("AT+CGREG=0");
+        at_send_command("AT+CGEREP=0,0");
+        at_send_command("AT+CMER=3,0,0,0");
+    }
+}
+
 static void requestScreenState(void *data, size_t datalen, RIL_Token t)
 {
     (void) datalen;
-    int err, screenState;
 
     getScreenStateLock();
 
     if (datalen < sizeof(int *))
         goto error;
 
-    screenState = s_screenState = ((int *) data)[0];
+    /* No point of enabling unsolicited if radio is off */
+    if (RADIO_STATE_OFF == getRadioState())
+        goto success;
 
-    if (screenState == 1) {
-        /* Screen is on - be sure to enable all unsolicited notifications again. */
-        err = at_send_command("AT+CREG=2");
-        if (err != AT_NOERROR)
-            goto error;
-        err = at_send_command("AT+CGREG=2");
-        if (err != AT_NOERROR)
-            goto error;
-        err = at_send_command("AT+CGEREP=1,0");
-        if (err != AT_NOERROR)
-            goto error;
+    s_screenState = ((int *) data)[0];
 
-        isSimSmsStorageFull(NULL);
-        pollSignalStrength((void *)-1);
-
-        err = at_send_command("AT+CMER=3,0,0,1");
-        if (err != AT_NOERROR)
-            goto error;
-    } else if (screenState == 0) {
-        /* Screen is off - disable all unsolicited notifications. */
-        err = at_send_command("AT+CREG=0");
-        if (err != AT_NOERROR)
-            goto error;
-        err = at_send_command("AT+CGREG=0");
-        if (err != AT_NOERROR)
-            goto error;
-        err = at_send_command("AT+CGEREP=0,0");
-        if (err != AT_NOERROR)
-            goto error;
-        err = at_send_command("AT+CMER=3,0,0,0");
-        if (err != AT_NOERROR)
-            goto error;
-    } else {
-        /* Not a defined value - error. */
+    if (s_screenState < 2)
+        setScreenState(s_screenState);
+    else
         goto error;
-    }
 
+success:
     RIL_onRequestComplete(t, RIL_E_SUCCESS, NULL, 0);
 
 finally:
@@ -382,8 +379,6 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
      */
     if (radio_state == RADIO_STATE_UNAVAILABLE
         && request != RIL_REQUEST_GET_SIM_STATUS) {
-	ALOGW("[%s] Ignoring request due to RADIO_STATE_UNAVAILABLE state",
-		__FUNCTION__);
         RIL_onRequestComplete(t, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
         return;
     }
@@ -401,9 +396,6 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
              request == RIL_REQUEST_GET_IMEI ||
              request == RIL_REQUEST_BASEBAND_VERSION ||
              request == RIL_REQUEST_SCREEN_STATE)) {
-	ALOGW("[%s] Ignoring request due to %s state", __FUNCTION__,
-		radio_state == RADIO_STATE_OFF ?
-		"RADIO_STATE_OFF" : "RADIO_STATE_SIM_NOT_READY");
         RIL_onRequestComplete(t, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
         return;
     }
@@ -420,6 +412,11 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
              request == RIL_REQUEST_GET_IMEISV ||
              request == RIL_REQUEST_GET_IMEI ||
              request == RIL_REQUEST_BASEBAND_VERSION ||
+             request == RIL_REQUEST_DATA_REGISTRATION_STATE ||
+             request == RIL_REQUEST_VOICE_REGISTRATION_STATE ||
+             request == RIL_REQUEST_OPERATOR ||
+             request == RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE ||
+             request == RIL_REQUEST_SCREEN_STATE ||
              request == RIL_REQUEST_GET_CURRENT_CALLS)) {
         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
         return;
@@ -435,11 +432,6 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
             break;
         case RIL_REQUEST_SCREEN_STATE:
             requestScreenState(data, datalen, t);
-            /* Trigger a rehash of network values, just to be sure. */
-            if (((int *)data)[0] == 1)
-                RIL_onUnsolicitedResponse(
-                                   RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED,
-                                   NULL, 0);
             break;
 
         /* Data Call Requests */
@@ -544,6 +536,9 @@ static void processRequest(int request, void *data, size_t datalen, RIL_Token t)
             break;
         case RIL_REQUEST_DATA_REGISTRATION_STATE:
             requestGprsRegistrationState(request, data, datalen, t);
+            break;
+        case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:
+            requestNeighboringCellIDs(data, datalen, t);
             break;
 
         /* OEM */
@@ -695,8 +690,8 @@ static char initializeCommon(void)
     int err = 0;
 
     set_pending_hotswap(0);
-    setE2napCause(-1);
-    setE2napState(-1);
+    setE2napState(E2NAP_STATE_UNKNOWN);
+    setE2napCause(E2NAP_CAUSE_UNKNOWN);
 
     if (at_handshake() < 0) {
         LOG_FATAL("Handshake failed!");
@@ -719,6 +714,11 @@ static char initializeCommon(void)
     if (err != AT_NOERROR)
         return 1;
 
+    /* Read out device information. Needs to be done prior to enabling
+     * unsolicited responses.
+     */
+    readDeviceInfo();
+
     /* Enable +CME ERROR: <err> result code and use numeric <err> values. */
     err = at_send_command("AT+CMEE=1");
     if (err != AT_NOERROR)
@@ -734,6 +734,9 @@ static char initializeCommon(void)
 
     /* Try to register for hotswap events. Don't care if it fails. */
     err = at_send_command("AT*EESIMSWAP=1");
+
+    /* Try to register for network capability events. Don't care if it fails. */
+    err = at_send_command("AT*ERINFO=1");
 
     /* Disable Service Reporting. */
     err = at_send_command("AT+CR=0");
@@ -779,6 +782,7 @@ static char initializeChannel(void)
 
     ALOGD("%s()", __func__);
 
+    ResetHotswap();
     setRadioState(RADIO_STATE_OFF);
 
     /*
@@ -811,13 +815,6 @@ static char initializeChannel(void)
     if (isRadioOn() > 0)
         setRadioState(RADIO_STATE_SIM_NOT_READY);
 
-    /* Subscribe to ST-Ericsson SIM State Reporting.
-     *   Enable SIM state reporting on the format *ESIMSR: <sim_state>
-     */
-    err = at_send_command("AT*ESIMSR=1");
-    if (err != AT_NOERROR)
-        return 1;
-
     return 0;
 }
 
@@ -831,7 +828,7 @@ static char initializePrioChannel(void)
 
     ALOGD("%s()", __func__);
 
-    /* Subscribe to ST-Ericsson Pin code event.
+    /* Subscribe to Pin code event.
      *   The command requests the MS to report when the PIN code has been
      *   inserted and accepted.
      *      1 = Request for report on inserted PIN code is activated (on)
@@ -856,30 +853,24 @@ static void onUnsolicited(const char *s, const char *sms_pdu)
         return;
 
     if (strStartsWith(s, "*ETZV:")) {
-        /* If we're in screen state, we have disabled CREG, but the ETZV
-           will catch those few cases. So we send network state changed as
-           well on NITZ. */
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED,
-                                  NULL, 0);
-
         onNetworkTimeReceived(s);
-    } else if (strStartsWith(s, "*EPEV")) {
+    } else if ((strStartsWith(s, "*EPEV")) || (strStartsWith(s, "+CGEV:"))) {
         /* Pin event, poll SIM State! */
-        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSIMState, NULL, NULL);
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSIMState, (void*) 1, NULL);
     } else if (strStartsWith(s, "*ESIMSR"))
         onSimStateChanged(s);
-    else if(strStartsWith(s, "*E2NAP:"))
+    else if(strStartsWith(s, "*E2NAP:")) {
+        enqueueRILEvent(RIL_EVENT_QUEUE_PRIO, pollSIMState, (void*) 1, NULL);
         onConnectionStateChanged(s);
+    } else if(strStartsWith(s, "*ERINFO:"))
+        onNetworkCapabilityChanged(s);
     else if(strStartsWith(s, "*E2REG:"))
         onNetworkStatusChanged(s);
     else if (strStartsWith(s, "*EESIMSWAP:"))
         onSimHotswap(s);
     else if (strStartsWith(s, "+CREG:")
-            || strStartsWith(s, "+CGREG:")) {
-/*TODO: If only reporting back network change Android can sometimes hang!! */
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED,
-                                  NULL, 0);
-    }
+            || strStartsWith(s, "+CGREG:"))
+        onRegistrationStatusChanged(s);
     else if (strStartsWith(s, "+CMT:"))
         onNewSms(sms_pdu);
     else if (strStartsWith(s, "+CBM:"))
@@ -898,9 +889,9 @@ static void onUnsolicited(const char *s, const char *sms_pdu)
         onStkProactiveCommand(s);
     else if (strStartsWith(s, "*STKN:"))
         onStkEventNotify(s);
-    else if (strStartsWith(s, "+PACSP0")) {
-	setRadioState(RADIO_STATE_SIM_READY);
-    }
+    else if (strStartsWith(s, "+PACSP0")) { 
+        setRadioState(RADIO_STATE_SIM_READY); 
+    } 
 }
 
 static void signalCloseQueues(void)
@@ -927,27 +918,42 @@ static void signalCloseQueues(void)
 /* Called on command or reader thread. */
 static void onATReaderClosed(void)
 {
-    ALOGI("AT channel closed");
+    ALOGD("%s() Calling at_close()", __func__);
+
+    at_close();
 
     if (!get_pending_hotswap())
         setRadioState(RADIO_STATE_UNAVAILABLE);
     signalCloseQueues();
 
-    at_close();
 }
 
 /* Called on command thread. */
 static void onATTimeout(void)
 {
-    ALOGI("AT channel timeout; restarting..");
-    /* Last resort, throw escape on the line, close the channel
-       and hope for the best. */
+    static int strike = 0;
+
+    strike++;
+
+    ALOGD("%s() AT channel timeout", __func__);
+
+     /* Last resort, throw escape on the line, close the channel
+        and hope for the best. */
+
     at_send_escape();
+    at_close();
 
     setRadioState(RADIO_STATE_UNAVAILABLE);
     signalCloseQueues();
 
-    /* TODO We may cause a radio reset here. */
+    /* Eperimental reboot of module on HP Touchpad 4G */
+    if (strike == 2) {
+        strike = 0;
+        ALOGW("*** Cold booting module ***");
+        system("echo 0 > /sys/bus/platform/devices/mdmgpio/mdm_poweron");
+        sleep(1);
+        system("echo 1 > /sys/bus/platform/devices/mdmgpio/mdm_poweron");
+    }
 }
 
 static void usage(char *s)
@@ -991,12 +997,14 @@ static void *queueRunner(void *param)
     char start[MAX_BUF];
     struct queueArgs *queueArgs = (struct queueArgs *) param;
     struct RequestQueue *q = NULL;
+    struct stat sb;
 
     ALOGI("%s() starting!", __func__);
 
     for (;;) {
         fd = -1;
         max_fd = -1;
+        n = 0;
         while (fd < 0) {
             if (queueArgs->port > 0) {
                 if (queueArgs->loophost)
@@ -1032,11 +1040,12 @@ static void *queueRunner(void *param)
             }
 
             if (fd < 0) {
-                ALOGE("%s() Failed to open AT channel %s (%s), retrying in %d.",
-		    __func__, queueArgs->device_path,
-		    strerror(errno), TIMEOUT_SEARCH_FOR_TTY);
+                if (n == 0) {
+                    ALOGE("%s() Failed to open AT channel %s (%s), will silently retry every %ds",
+                        __func__, queueArgs->device_path, strerror(errno), TIMEOUT_SEARCH_FOR_TTY);
+                    n = 1;
+                }
                 sleep(TIMEOUT_SEARCH_FOR_TTY);
-                /* Never returns. */
             }
         }
 
@@ -1050,7 +1059,7 @@ static void *queueRunner(void *param)
         timeout.tv_sec = TIMEOUT_EMRDY;
         timeout.tv_usec = 0;
 
-        ALOGD("%s() waiting for emrdy...", __func__);
+        ALOGD("%s() Waiting for EMRDY...", __func__);
         n = select(max_fd, &input, NULL, NULL, &timeout);
 
         if (n < 0) {
@@ -1063,7 +1072,7 @@ static void *queueRunner(void *param)
             safe_read(fd, start, MAX_BUF-1);
 
             if (start == NULL) {
-                ALOGD("%s() Eiii empty string", __func__);
+                ALOGD("%s() Oops, empty string", __func__);
                 tcflush(fd, TCIOFLUSH);
                 FD_CLR(fd, &input);
                 close(fd);
@@ -1071,7 +1080,7 @@ static void *queueRunner(void *param)
             }
 
             if (strstr(start, "EMRDY") == NULL) {
-                ALOGD("%s() Eiii this was not EMRDY: %s", __func__, start);
+                ALOGD("%s() Oops, this was not EMRDY: %s", __func__, start);
                 tcflush(fd, TCIOFLUSH);
                 FD_CLR(fd, &input);
                 close(fd);
@@ -1091,6 +1100,7 @@ static void *queueRunner(void *param)
 
         at_set_on_reader_closed(onATReaderClosed);
         at_set_on_timeout(onATTimeout);
+        at_set_timeout_msec(1000 * 30);
 
         q = &s_requestQueue;
 
@@ -1130,9 +1140,9 @@ static void *queueRunner(void *param)
 
             memset(&ts, 0, sizeof(ts));
 
-        if ((err = pthread_mutex_lock(&q->queueMutex)) != 0)
-            ALOGE("%s() failed to take queue mutex: %s!",
-                __func__, strerror(err));
+            if ((err = pthread_mutex_lock(&q->queueMutex)) != 0)
+                ALOGE("%s() failed to take queue mutex: %s!",
+                    __func__, strerror(err));
 
             if (q->closed != 0) {
                 ALOGW("%s() AT Channel error, attempting to recover..", __func__);
@@ -1151,7 +1161,7 @@ static void *queueRunner(void *param)
             /* eventList is prioritized, smallest abstime first. */
             if (q->closed == 0 && q->requestList == NULL && q->eventList) {
                 int err = 0;
-                err = pthread_cond_timedwait(&q->cond, &q->queueMutex, &q->eventList->abstime);
+                err = pthread_cond_timedwait_monotonic_np(&q->cond, &q->queueMutex, &q->eventList->abstime);
                 if (err && err != ETIMEDOUT)
                     ALOGE("%s() timedwait returned unexpected error: %s",
 		        __func__, strerror(err));
@@ -1185,6 +1195,8 @@ static void *queueRunner(void *param)
                     __func__, strerror(err));
 
             if (e) {
+                if (NULL != e->name)
+                    ALOGD("processEvent(%s)",e->name);
                 e->eventCallback(e->param);
                 free(e);
             }
@@ -1197,6 +1209,18 @@ static void *queueRunner(void *param)
         }
 
         at_close();
+
+        /* Make sure device is removed before trying to reopen
+           otherwise we might end up in a race condition when
+           device is being removed from filesystem */
+
+        int i = TIMEOUT_DEVICE_REMOVED;
+        while((i--) && (stat(queueArgs->device_path, &sb) == 0)) {
+            ALOGD("%s() Waiting for %s to be removed (%d)...", __func__,
+                queueArgs->device_path, i);
+            sleep(1);
+        }
+
         ALOGE("%s() Re-opening after close", __func__);
     }
     return NULL;

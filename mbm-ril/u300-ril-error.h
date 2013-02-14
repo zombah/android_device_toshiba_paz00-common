@@ -104,29 +104,23 @@
 
 /* State of USB Ethernet interface */
 // State
-#define E2NAP_ST_DISCONNECTED 0
-#define E2NAP_ST_CONNECTED    1
-#define E2NAP_ST_CONNECTING   2
+#define E2NAP_STATE_UNKNOWN        -1
+#define E2NAP_STATE_DISCONNECTED   0
+#define E2NAP_STATE_CONNECTED      1
+#define E2NAP_STATE_CONNECTING     2
 // Cause
-#define E2NAP_C_SUCCESS                  0
-#define E2NAP_C_GPRS_ATTACH_NOT_POSSIBLE 1
-#define E2NAP_C_NO_SIGNAL_CONN           2
-#define E2NAP_C_REACTIVATION_POSSIBLE    3
-#define E2NAP_C_ACCESS_CLASS_BARRED      4
+#define E2NAP_CAUSE_UNKNOWN                     -1
+#define E2NAP_CAUSE_SUCCESS                     0
+#define E2NAP_CAUSE_GPRS_ATTACH_NOT_POSSIBLE    1
+#define E2NAP_CAUSE_NO_SIGNAL_CONN              2
+#define E2NAP_CAUSE_REACTIVATION_POSSIBLE       3
+#define E2NAP_CAUSE_ACCESS_CLASS_BARRED         4
 // 8 - 112 in 3GPP TS 24.008 
-#define E2NAP_C_MAXIMUM 255
-
-#define ENAP_S_DISCONNECTED	0
-#define ENAP_S_CONNECTED    1
-
-#define ENAP_T_NOT_CONNECTED 0
-#define ENAP_T_CONNECTED     1
-#define ENAP_T_CONN_IN_PROG  2
+#define E2NAP_CAUSE_MAXIMUM 255
 
 void mbm_check_error_cause(void);
 
 const char *errorCauseToString(int cause);
 const char *e2napStateToString(int state);
-const char *enapStateToString(int state);
 
 #endif

@@ -33,9 +33,10 @@
 
 static char s_outstanding_acknowledge = 0;
 
-#define OUTSTANDING_SMS    0
-#define OUTSTANDING_STATUS 1
-#define OUTSTANDING_CB     2
+/* Outstanding types as bit fields, need to be 2^n */
+#define OUTSTANDING_SMS    1
+#define OUTSTANDING_STATUS 2
+#define OUTSTANDING_CB     4
 
 #define MESSAGE_STORAGE_READY_TIMER 3
 
@@ -44,26 +45,35 @@ static char s_outstanding_acknowledge = 0;
 struct held_pdu {
     char type;
     char *sms_pdu;
+    int len;
     struct held_pdu *next;
 };
 
 static pthread_mutex_t s_held_pdus_mutex = PTHREAD_MUTEX_INITIALIZER;
 static struct held_pdu *s_held_pdus = NULL;
 
-static struct held_pdu *dequeue_held_pdu(void)
+static struct held_pdu *dequeue_held_pdu(char types)
 {
-    struct held_pdu *hpdu = NULL;
-
-    if (s_held_pdus != NULL) {
-        hpdu = s_held_pdus;
-        s_held_pdus = hpdu->next;
-        hpdu->next = NULL;
+    struct held_pdu *hpdu = s_held_pdus;
+    struct held_pdu *hpdu_prev = NULL;
+    while (hpdu != NULL) {
+        if (hpdu->type & types) {
+            if (s_held_pdus == hpdu)
+                s_held_pdus = hpdu->next;
+            if (hpdu_prev)
+                hpdu_prev->next = hpdu->next;
+            hpdu->next = NULL;
+            break;
+        } else {
+            hpdu_prev = hpdu;
+            hpdu = hpdu->next;
+        }
     }
 
     return hpdu;
 }
 
-static void enqueue_held_pdu(char type, const char *sms_pdu)
+static void enqueue_held_pdu(char type, const char *sms_pdu, int len)
 {
     struct held_pdu *hpdu = malloc(sizeof(*hpdu));
     if (hpdu == NULL) {
@@ -73,11 +83,15 @@ static void enqueue_held_pdu(char type, const char *sms_pdu)
 
     memset(hpdu, 0, sizeof(*hpdu));
     hpdu->type = type;
-    hpdu->sms_pdu = strdup(sms_pdu);
+    hpdu->len = len;
+    hpdu->sms_pdu = malloc(len+1);
     if (NULL == hpdu->sms_pdu) {
         ALOGE("%s() failed to allocate memory!", __func__);
+        free(hpdu);
         return;
     }
+    memcpy(hpdu->sms_pdu, sms_pdu, len);
+    hpdu->sms_pdu[len] = '\0';
 
     if (s_held_pdus == NULL)
        s_held_pdus = hpdu;
@@ -139,11 +153,11 @@ void onNewSms(const char *sms_pdu)
 
     /* No RIL_UNSOL_RESPONSE_NEW_SMS or RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT
      * messages should be sent until a RIL_REQUEST_SMS_ACKNOWLEDGE has been received for
-     * previous new SMS.
+     * previous new SMS or status.
      */
     if (s_outstanding_acknowledge) {
-        ALOGI("Waiting for ack for previous sms, enqueueing PDU");
-        enqueue_held_pdu(OUTSTANDING_SMS, sms_pdu);
+        ALOGI("%s() Waiting for ack for previous sms/status, enqueue PDU..", __func__);
+        enqueue_held_pdu(OUTSTANDING_SMS, sms_pdu, strlen(sms_pdu));
     } else {
         s_outstanding_acknowledge = 1;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_NEW_SMS,
@@ -169,11 +183,11 @@ void onNewStatusReport(const char *sms_pdu)
 
     /* No RIL_UNSOL_RESPONSE_NEW_SMS or RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT
      * messages should be sent until a RIL_REQUEST_SMS_ACKNOWLEDGE has been received for
-     * previous new SMS.
+     * previous new SMS or status.
      */
     if (s_outstanding_acknowledge) {
-        ALOGE("%s() Waiting for previous ack, enqueueing PDU..", __func__);
-        enqueue_held_pdu(OUTSTANDING_STATUS, response);
+        ALOGI("%s() Waiting for ack for previous sms/status, enqueue PDU..", __func__);
+        enqueue_held_pdu(OUTSTANDING_STATUS, response, strlen(response));
     } else {
         s_outstanding_acknowledge = 1;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT,
@@ -201,20 +215,16 @@ void onNewBroadcastSms(const char *pdu)
     }
 
     stringToBinary(pdu, 2*BSM_LENGTH, (unsigned char *)message);
-    ALOGD("%s() Message: %88s", __func__, message);
 
     pthread_mutex_lock(&s_held_pdus_mutex);
 
-    /* No RIL_UNSOL_RESPONSE_NEW_SMS or RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT
-     * or RIL_UNSOL_RESPONSE_NEW_CB
-     * messages should be sent until a RIL_REQUEST_SMS_ACKNOWLEDGE has been received for
-     * previous new SMS.
+    /* Don't RIL_UNSOL_RESPONSE_NEW_CB until an outstanding
+     * RIL_REQUEST_SMS_ACKNOWLEDGE has been received.
      */
     if (s_outstanding_acknowledge) {
-        ALOGE("%s() Waiting for previous ack, enqueueing PDU..", __func__);
-        enqueue_held_pdu(OUTSTANDING_CB, message);
+        ALOGI("%s() Waiting for ack for previous sms/status, enqueue PDU..", __func__);
+        enqueue_held_pdu(OUTSTANDING_CB, message, BSM_LENGTH);
     } else {
-        s_outstanding_acknowledge = 1;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS,
                               message, BSM_LENGTH);
     }
@@ -571,27 +581,42 @@ void requestSMSAcknowledge(void *data, size_t datalen, RIL_Token t)
     RIL_onRequestComplete(t, RIL_E_SUCCESS, NULL, 0);
 
     pthread_mutex_lock(&s_held_pdus_mutex);
-    hpdu = dequeue_held_pdu();
 
-    if (hpdu != NULL) {
-        ALOGE("%s() Outstanding requests in queue, dequeueing and sending.",
-	     __func__);
-        int unsolResponse = 0;
+    /* Prioritize any outstanding pdu with a type that need an ACK, and when
+     * reaching outstanding pdus with a type that don't need an ACK, just send
+     * them all.
+     */
+    while (1) {
+        hpdu = dequeue_held_pdu(OUTSTANDING_SMS | OUTSTANDING_STATUS);
+        if (NULL == hpdu)
+            hpdu = dequeue_held_pdu(OUTSTANDING_CB);
 
-        if (hpdu->type == OUTSTANDING_SMS)
-            unsolResponse = RIL_UNSOL_RESPONSE_NEW_SMS;
-        else if (hpdu->type == OUTSTANDING_CB)
-            unsolResponse = RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS;
-        else
-            unsolResponse = RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT;
+        if (hpdu != NULL) {
+            ALOGE("%s() Outstanding requests in queue, dequeueing and sending.",
+             __func__);
+            int unsolResponse = 0;
+            char type = hpdu->type;
 
-        RIL_onUnsolicitedResponse(unsolResponse, hpdu->sms_pdu,
-                                  strlen(hpdu->sms_pdu));
+            if (hpdu->type == OUTSTANDING_SMS)
+                unsolResponse = RIL_UNSOL_RESPONSE_NEW_SMS;
+            else if (hpdu->type == OUTSTANDING_CB)
+                unsolResponse = RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS;
+            else
+                unsolResponse = RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT;
 
-        free(hpdu->sms_pdu);
-        free(hpdu);
-    } else
-        s_outstanding_acknowledge = 0;
+            RIL_onUnsolicitedResponse(unsolResponse, hpdu->sms_pdu, hpdu->len);
+
+            free(hpdu->sms_pdu);
+            free(hpdu);
+
+            if (OUTSTANDING_CB != type)
+                /* Still need an ACK. Break out of the loop */
+                break;
+        } else {
+            s_outstanding_acknowledge = 0;
+            break;
+        }
+    }
 
     pthread_mutex_unlock(&s_held_pdus_mutex);
 }
