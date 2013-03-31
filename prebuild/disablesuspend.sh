@@ -11,7 +11,7 @@ wait_home_screen(){
     while(true)
     do
         echo "Waiting for Homescreen ..."
-        if logcat -d | grep -i "Displayed com.android.launcher/com.android.launcher2.Launcher:" ; then
+        if logcat -d | grep -i "Displayed com.cyanogenmod.trebuchet/.Launcher:" ; then
             echo "Home screen should be displayed!"
             return 0
         fi
