@@ -970,6 +970,8 @@ void CameraHardware::initDefaultParameters()
     p.set(CameraParameters::KEY_ZOOM_RATIOS, "100");
     p.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
 
+    p.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP,"0.1");
+
     if (setParameters(p.flatten()) != NO_ERROR) {
         ALOGE("CameraHardware::initDefaultParameters: Failed to set default parameters.");
     }
