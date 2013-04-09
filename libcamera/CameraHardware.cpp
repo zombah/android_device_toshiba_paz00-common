@@ -972,6 +972,13 @@ void CameraHardware::initDefaultParameters()
 
     p.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP,"0.1");
 
+    // keep these in sync with hw specs, needed for panorama in Camera app.
+    // VS6725 spec has only the diagonal view angle, the vertical view angle
+    // is indirectly derived from available values but should be
+    // approximately correct
+    p.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, "52.6");
+    p.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, "36.9");
+
     if (setParameters(p.flatten()) != NO_ERROR) {
         ALOGE("CameraHardware::initDefaultParameters: Failed to set default parameters.");
     }
