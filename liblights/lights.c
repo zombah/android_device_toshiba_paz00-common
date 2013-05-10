@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2012 ac100 Russian community
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,6 +100,46 @@ static int set_light_backlight(struct light_device_t *dev,
 	return err;
 }
 
+/**
+ Непосредственно включение/выключение диодов тошибы
+mode:
+ 1 - включить;
+ 0 - выключить;
+*/
+static int
+set_leds_locked(int mode)
+{
+	int err = 0;
+	err = write_int("/sys/class/leds/nvec-led/brightness", mode);
+	return err;
+}
+
+
+/** Попытка реализации моргания по уведомлениям */
+static int
+set_light_notifications(struct light_device_t* dev,
+        struct light_state_t const* state)
+{
+    pthread_mutex_lock(&g_lock);
+
+    // считывание переменных
+    unsigned int color = state->color;
+    int flashOnMS = state->flashOnMS;
+    int flashOffMS = state->flashOffMS;
+
+    // управление включением/выключением
+    // пока примитивный алгоритм
+    if ((color != 0)||(flashOnMS != 0)) set_leds_locked(1);
+    else if ((color == 0)||((flashOnMS == 0)&&(flashOnMS == 0))) set_leds_locked(0);
+
+    // TODO: можно смотреть значения flashOnMS, flashOffMS
+    // и устанавливать подходящий режим из 1..8
+    // перед этим надо будет ещё проверять flashMode
+
+    pthread_mutex_unlock(&g_lock);
+    return 0;
+}
+
 /** Close the lights device */
 static int close_lights(struct light_device_t *dev)
 {
@@ -118,6 +159,9 @@ static int open_lights(const struct hw_module_t *module, char const *name,
 
 	if (0 == strcmp(LIGHT_ID_BACKLIGHT, name))
 		set_light = set_light_backlight;
+
+	else if (0 == strcmp(LIGHT_ID_NOTIFICATIONS, name))
+		set_light = set_light_notifications;
 	else
 		return -EINVAL;
 
