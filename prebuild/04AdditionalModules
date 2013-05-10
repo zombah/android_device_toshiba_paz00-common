@@ -2,6 +2,8 @@
 #
 # Load Additional kernel modules
 #
+# Load mouse driver
+insmod /system/lib/modules/psmouse.ko resetafter=0
 # Asix usb ethernet devices
 insmod /system/lib/modules/asix.ko
 # Sony joysticks support
@@ -10,5 +12,8 @@ insmod /system/lib/modules/hid-sony.ko
 insmod /system/lib/modules/snd-hwdep.ko
 insmod /system/lib/modules/snd-usbmidi-lib.ko
 insmod /system/lib/modules/snd-usb-audio.ko
+# RNDIS
+insmod /system/lib/modules/rndis_host.ko
+insmod /system/lib/modules/rndis_wlan.ko
 #
 # Add additional modules here
