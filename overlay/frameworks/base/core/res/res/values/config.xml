@@ -166,7 +166,7 @@
           to this list.  If this is empty, no parts of the host USB bus will be excluded.
        -->
     <string-array name="config_usbHostBlacklist">
-    <item>/dev/bus/usb/001</item>
+    <!-- <item>/dev/bus/usb/001</item> -->
     </string-array>
     
     <!-- Regex of wired ethernet ifaces -->
@@ -304,5 +304,8 @@
 
     <!-- Minimum screen brightness allowed by the power manager. -->
     <integer name="config_screenBrightnessDim">5</integer>
+
+    <!-- Enable lockscreen rotation by default -->
+    <bool name="config_enableLockScreenRotation">false</bool>
 </resources>
 
