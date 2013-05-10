@@ -111,6 +111,9 @@ on boot
 # backlight
     chown system system /sys/class/backlight/pwm-backlight/brightness
 
+# leds 
+    chown system system /sys/class/leds/nvec-led/brightness
+
 # power
     chown system system /sys/module/cpu_tegra/parameters/cpu_user_cap
 
