@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#define LOG_NDEBUG 0
 #define LOG_TAG "lights"
 #define LOGE ALOGE
 
@@ -106,8 +107,7 @@ mode:
  1 - включить;
  0 - выключить;
 */
-static int
-set_leds_locked(int mode)
+static int set_leds_locked(int mode)
 {
 	int err = 0;
 	err = write_int("/sys/class/leds/nvec-led/brightness", mode);
@@ -116,9 +116,8 @@ set_leds_locked(int mode)
 
 
 /** Попытка реализации моргания по уведомлениям */
-static int
-set_light_notifications(struct light_device_t* dev,
-        struct light_state_t const* state)
+static int set_light_notifications(struct light_device_t* dev,
+                                   struct light_state_t const* state)
 {
     pthread_mutex_lock(&g_lock);
 
