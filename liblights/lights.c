@@ -154,7 +154,9 @@ set_notification_light(struct light_state_t const* state)
         ALOGV("set_notification_light colorRGB=%08X, onMS=%d, offMS=%d\n",
                         state->color, state->flashOnMS, state->flashOffMS);
 
-        write_int("/sys/class/leds/nvec-led/brightness", brightness);
+        write_int("/sys/class/leds/nvec-led/brightness", blink);
+
+	ALOGV("blink written");
 
         return 0;
 }
