@@ -33,6 +33,12 @@
 #include <hardware/lights.h>
 #include <hardware/hardware.h>
 
+#define LIGHT_ATTENTION 1
+#define LIGHT_NOTIFY    2
+
+static struct light_state_t *g_notify;
+static struct light_state_t *g_attention;
+static pthread_once_t g_init = PTHREAD_ONCE_INIT;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int write_int(char const *path, int value)
@@ -55,12 +61,50 @@ static int write_int(char const *path, int value)
 	}
 }
 
+static int write_string(char const *path, char const *value)
+{
+        int fd;
+        static int already_warned = -1;
+        fd = open(path, O_RDWR);
+        if (fd >= 0) {
+                char buffer[20];
+                int bytes = sprintf(buffer, "%s\n", value);
+                int amt = write(fd, buffer, bytes);
+                close(fd);
+                return amt == -1 ? -errno : 0;
+        } else {
+                if (already_warned == -1) {
+                        LOGE("write_int failed to open %s\n", path);
+                        already_warned = 1;
+                }
+                return -errno;
+        }
+}
+
+void init_globals(void)
+{
+        pthread_mutex_init(&g_lock, NULL);
+
+        g_attention = malloc(sizeof(struct light_state_t));
+        memset(g_attention, 0, sizeof(*g_attention));
+        g_notify = malloc(sizeof(struct light_state_t));
+        memset(g_notify, 0, sizeof(*g_notify));
+}
+
 static int rgb_to_brightness(struct light_state_t const *state)
 {
 	int color = state->color & 0x00ffffff;
-	return ((77 * ((color >> 16) & 0x00ff))
-		+ (150 * ((color >> 8) & 0x00ff)) +
-		(29 * (color & 0x00ff))) >> 8;
+	int red = (color >> 16) & 0x000000ff;
+        int green = (color >> 8) & 0x000000ff;
+        int blue = color & 0x000000ff;
+
+        int brightness = red;
+        if (green > brightness)
+                brightness = green;
+        if (blue > brightness)
+                brightness = blue;
+
+        return brightness;
 }
 
 static int set_light_backlight(struct light_device_t *dev,
@@ -101,42 +145,92 @@ static int set_light_backlight(struct light_device_t *dev,
 	return err;
 }
 
-/**
- Непосредственно включение/выключение диодов тошибы
-mode:
- 1 - включить;
- 0 - выключить;
-*/
-static int set_leds_locked(int mode)
+static int
+set_notification_light(struct light_state_t const* state)
 {
-	int err = 0;
-	err = write_int("/sys/class/leds/nvec-led/brightness", mode);
-	return err;
+        unsigned int brightness = rgb_to_brightness(state);
+        int blink = state->flashOnMS;
+
+        ALOGV("set_notification_light colorRGB=%08X, onMS=%d, offMS=%d\n",
+                        state->color, state->flashOnMS, state->flashOffMS);
+
+        write_int("/sys/class/leds/nvec-led/brightness", brightness);
+
+        return 0;
 }
 
-
-/** Попытка реализации моргания по уведомлениям */
-static int set_light_notifications(struct light_device_t* dev,
-                                   struct light_state_t const* state)
+static void
+handle_notification_light_locked(int type)
 {
-    pthread_mutex_lock(&g_lock);
+        struct light_state_t *new_state = 0;
+        int attn_mode = 0;
 
-    // считывание переменных
-    unsigned int color = state->color;
-    int flashOnMS = state->flashOnMS;
-    int flashOffMS = state->flashOffMS;
+        if (g_attention->flashMode == LIGHT_FLASH_HARDWARE)
+                attn_mode = g_attention->flashOnMS;
 
-    // управление включением/выключением
-    // пока примитивный алгоритм
-    if ((color != 0)||(flashOnMS != 0)) set_leds_locked(1);
-    else if ((color == 0)||((flashOnMS == 0)&&(flashOnMS == 0))) set_leds_locked(0);
+        switch (type) {
+                case LIGHT_ATTENTION: {
+                        if (attn_mode == 0) {
+                                /* go back to notify state */
+                                new_state = g_notify;
+                        } else {
+                                new_state = g_attention;
+                        }
+                break;
+                }
+                case LIGHT_NOTIFY: {
+                        if (attn_mode != 0) {
+                                /* attention takes priority over notify state */
+                                new_state = g_attention;
+                        } else {
+                                new_state = g_notify;
+                        }
+                break;
+                }
+        }
+        if (new_state == 0) {
+                ALOGE("%s: unknown type (%d)\n", __func__, type);
+                return;
+        }
 
-    // TODO: можно смотреть значения flashOnMS, flashOffMS
-    // и устанавливать подходящий режим из 1..8
-    // перед этим надо будет ещё проверять flashMode
+        set_notification_light(new_state);
+}
 
-    pthread_mutex_unlock(&g_lock);
-    return 0;
+static int
+set_light_notifications(struct light_device_t* dev,
+                struct light_state_t const* state)
+{
+        pthread_mutex_lock(&g_lock);
+
+        g_notify->color = state->color;
+        if (state->flashMode != LIGHT_FLASH_NONE) {
+                g_notify->flashMode = LIGHT_FLASH_HARDWARE;
+                g_notify->flashOnMS = state->flashOnMS;
+                g_notify->flashOffMS = state->flashOffMS;
+        } else {
+                g_notify->flashOnMS = 0;
+                g_notify->flashOffMS = 0;
+        }
+        handle_notification_light_locked(LIGHT_NOTIFY);
+
+        pthread_mutex_unlock(&g_lock);
+        return 0;
+}
+
+static int
+set_light_attention(struct light_device_t* dev,
+                struct light_state_t const* state)
+{
+        pthread_mutex_lock(&g_lock);
+
+        g_attention->flashMode = state->flashMode;
+        g_attention->flashOnMS = state->flashOnMS;
+        g_attention->color = state->color;
+        g_attention->flashOffMS = 0;
+        handle_notification_light_locked(LIGHT_ATTENTION);
+
+        pthread_mutex_unlock(&g_lock);
+        return 0;
 }
 
 /** Close the lights device */
@@ -161,13 +255,14 @@ static int open_lights(const struct hw_module_t *module, char const *name,
 
 	if (0 == strcmp(LIGHT_ID_BACKLIGHT, name))
 		set_light = set_light_backlight;
-
 	else if (0 == strcmp(LIGHT_ID_NOTIFICATIONS, name))
 		set_light = set_light_notifications;
+	else if (0 == strcmp(LIGHT_ID_ATTENTION, name))
+                set_light = set_light_attention;
 	else
 		return -EINVAL;
 
-	pthread_mutex_init(&g_lock, NULL);
+	pthread_once(&g_init, init_globals);
 
 	struct light_device_t *dev = malloc(sizeof(struct light_device_t));
 	memset(dev, 0, sizeof(*dev));
