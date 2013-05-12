@@ -113,6 +113,7 @@ on boot
 
 # leds 
     chown system system /sys/class/leds/nvec-led/brightness
+    chmod 0660 /sys/class/leds/nvec-led/brightness
 
 # power
     chown system system /sys/module/cpu_tegra/parameters/cpu_user_cap
