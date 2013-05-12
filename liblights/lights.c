@@ -21,13 +21,18 @@
 
 #include <cutils/log.h>
 
+#include <dirent.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
+
+#include <linux/input.h>
 
 #include <sys/ioctl.h>
+#include <sys/poll.h>
 #include <sys/types.h>
 
 #include <hardware/lights.h>
@@ -36,13 +41,20 @@
 #define LIGHT_ATTENTION 1
 #define LIGHT_NOTIFY    2
 
+/******************************************************************************/
+
 static struct light_state_t *g_notify;
 static struct light_state_t *g_attention;
 static pthread_once_t g_init = PTHREAD_ONCE_INIT;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ * device methods
+ */
+
 static int write_int(char const *path, int value)
 {
+	ALOGV("write_int is called");
 	int fd;
 	static int already_warned = -1;
 	fd = open(path, O_RDWR);
@@ -63,6 +75,7 @@ static int write_int(char const *path, int value)
 
 static int write_string(char const *path, char const *value)
 {
+	ALOGV("write_string is called");
         int fd;
         static int already_warned = -1;
         fd = open(path, O_RDWR);
@@ -83,6 +96,7 @@ static int write_string(char const *path, char const *value)
 
 void init_globals(void)
 {
+	ALOGV("inits_globals is called");
         pthread_mutex_init(&g_lock, NULL);
 
         g_attention = malloc(sizeof(struct light_state_t));
@@ -93,6 +107,7 @@ void init_globals(void)
 
 static int rgb_to_brightness(struct light_state_t const *state)
 {
+	ALOGV("rgb_to_brightness is called");
 	int color = state->color & 0x00ffffff;
 	int red = (color >> 16) & 0x000000ff;
         int green = (color >> 8) & 0x000000ff;
@@ -110,6 +125,7 @@ static int rgb_to_brightness(struct light_state_t const *state)
 static int set_light_backlight(struct light_device_t *dev,
 			       struct light_state_t const *state)
 {
+	ALOGV("set_light_backlight is called");
 	int err = 0;
 	int brightness = rgb_to_brightness(state);
 	//+++ power save
@@ -148,6 +164,7 @@ static int set_light_backlight(struct light_device_t *dev,
 static int
 set_notification_light(struct light_state_t const* state)
 {
+	ALOGV("set_notification_light is called");
         unsigned int brightness = rgb_to_brightness(state);
         int blink = state->flashOnMS;
 
@@ -164,6 +181,7 @@ set_notification_light(struct light_state_t const* state)
 static void
 handle_notification_light_locked(int type)
 {
+	ALOGV("handle_notification_light_locked is called");
         struct light_state_t *new_state = 0;
         int attn_mode = 0;
 
@@ -202,6 +220,7 @@ static int
 set_light_notifications(struct light_device_t* dev,
                 struct light_state_t const* state)
 {
+	ALOGV("set_light_notifications is called");
         pthread_mutex_lock(&g_lock);
 
         g_notify->color = state->color;
@@ -223,6 +242,7 @@ static int
 set_light_attention(struct light_device_t* dev,
                 struct light_state_t const* state)
 {
+	ALOGV("set_light_attention is called");
         pthread_mutex_lock(&g_lock);
 
         g_attention->flashMode = state->flashMode;
@@ -243,6 +263,12 @@ static int close_lights(struct light_device_t *dev)
 		free(dev);
 	return 0;
 }
+
+/******************************************************************************/
+
+/**
+ * module methods
+ */
 
 /** Open a new instance of a lights device using name */
 static int open_lights(const struct hw_module_t *module, char const *name,
