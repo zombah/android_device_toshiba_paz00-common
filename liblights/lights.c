@@ -125,9 +125,10 @@ static int rgb_to_brightness(struct light_state_t const *state)
 static int set_light_backlight(struct light_device_t *dev,
 			       struct light_state_t const *state)
 {
-	ALOGV("set_light_backlight is called");
 	int err = 0;
 	int brightness = rgb_to_brightness(state);
+	ALOGV("%s brightness=%d, brightnessMode=%d, flashMode=%d, onMS=%d, offMS=%d, colorRGB=%08X\n",
+                        __func__, brightness, state->brightnessMode, state->flashMode, state->flashOnMS, state->flashOffMS, state->color);
 	//+++ power save
 	int range_num = 1;
 	int old_brightness_range_indexs[] = {160,255};
@@ -168,8 +169,8 @@ set_notification_light(struct light_state_t const* state)
         unsigned int brightness = rgb_to_brightness(state);
         int blink = state->flashOnMS;
 
-        ALOGV("set_notification_light colorRGB=%08X, onMS=%d, offMS=%d\n",
-                        state->color, state->flashOnMS, state->flashOffMS);
+        ALOGV("set_notification_light brightnessMode=%d, colorRGB=%08X, flashMode=%d, onMS=%d, offMS=%d\n",
+                        state->brightnessMode, state->color, state->flashMode, state->flashOnMS, state->flashOffMS);
 
         write_int("/sys/class/leds/nvec-led/brightness", blink);
 
@@ -196,6 +197,7 @@ handle_notification_light_locked(int type)
                         } else {
                                 new_state = g_attention;
                         }
+		ALOGV("%s: case LIGHT_ATTENTION", __func__);
                 break;
                 }
                 case LIGHT_NOTIFY: {
@@ -205,6 +207,7 @@ handle_notification_light_locked(int type)
                         } else {
                                 new_state = g_notify;
                         }
+		ALOGV("%s: case LIGHT_NOTIFY", __func__);
                 break;
                 }
         }
@@ -245,10 +248,11 @@ set_light_attention(struct light_device_t* dev,
 	ALOGV("set_light_attention is called");
         pthread_mutex_lock(&g_lock);
 
+	g_attention->brightnessMode = state->brightnessMode;
         g_attention->flashMode = state->flashMode;
         g_attention->flashOnMS = state->flashOnMS;
         g_attention->color = state->color;
-        g_attention->flashOffMS = 0;
+        g_attention->flashOffMS = state->flashOffMS;
         handle_notification_light_locked(LIGHT_ATTENTION);
 
         pthread_mutex_unlock(&g_lock);
