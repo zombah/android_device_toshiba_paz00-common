@@ -171,8 +171,6 @@ public:
 
 private:
 
-	bool PowerOn();
-	bool PowerOff();
 	bool NegotiatePreviewFormat(struct preview_stream_ops* win);
 
 public:
@@ -182,7 +180,7 @@ public:
      *      instance in camera factory's array.
      *  module - Emulated camera HAL module descriptor.
      */
-    CameraHardware(const hw_module_t* module, const char* videodev);
+    CameraHardware(const hw_module_t* module);
 
     /* Destructs EmulatedCamera instance. */
     virtual ~CameraHardware();
@@ -212,7 +210,7 @@ public:
      * NOTE: When this method is called the object is locked.
      * Note that failures in this method are reported as negave EXXX statuses.
      */
-    static status_t getCameraInfo(int camera_id, struct camera_info* info);
+    static status_t getCameraInfo(struct camera_info* info);
 	
 private:
 
