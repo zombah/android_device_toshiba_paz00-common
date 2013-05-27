@@ -29,6 +29,14 @@ extern "C" {
 
 #define HEADERFRAME1 0xaf
 
+//#define DEBUG_FRAME 0
+
+#ifdef DEBUG_FRAME
+#define LOG_FRAME ALOGD
+#else
+#define LOG_FRAME ALOGV
+#endif
+
 namespace android {
 
 V4L2Camera::V4L2Camera ()
@@ -43,69 +51,6 @@ V4L2Camera::~V4L2Camera()
     free(videoIn);
 }
 
-// File to control camera power
-#define CAMERA_POWER "/sys/devices/platform/shuttle-pm-camera/power_on"
-
-bool V4L2Camera::PowerOn(const char *device)
-{
-	ALOGD("V4L2Camera::PowerOn: Power ON camera.");
-	
-	// power on camera
-	int handle = ::open(CAMERA_POWER,O_RDWR);
-	if (handle >= 0) {
-		::write(handle,"1\n",2);
-		::close(handle);
-	} else {
-		ALOGE("Could not open %s for writing.", CAMERA_POWER);
-		return false;
-    } 
-
-	// Wait a bit to allow camera to start...
-	::usleep(500000);
-
-	// Wait until the camera is recognized or timed out
-	int timeOut = 500;
-	do {
-		// Try to open the video capture device
-		handle = ::open(device,O_RDWR);
-		if (handle >= 0)
-			break;
-		// Wait a bit
-		::usleep(10000);
-	} while (--timeOut > 0);
-	
-	if (handle >= 0) {
-		ALOGD("Camera powered on");
-		::close(handle);
-		return true;
-	} else {
-		ALOGE("Unable to power camera");
-	}
-	
-	return false;
-}
-
-bool V4L2Camera::PowerOff()
-{
-	ALOGD("V4L2Camera::PowerOff: Power OFF camera.");
-	
-	// power on camera
-	int handle = ::open(CAMERA_POWER,O_RDWR);
-	if (handle >= 0) {
-		::write(handle,"0\n",2);
-		::close(handle);
-	} else {
-		ALOGE("Could not open %s for writing.", CAMERA_POWER);
-		return false;
-    } 
-	
-	// Wait a bit to allow camera to stop...
-	::usleep(500000);
-
-	return true;
-}
-
-
 int V4L2Camera::Open (const char *device)
 {
     int ret;
@@ -115,11 +60,6 @@ int V4L2Camera::Open (const char *device)
 	
     memset(videoIn, 0, sizeof (struct vdIn));
 
-	// Power on camera
-	if (!PowerOn(device)) {
-		return -1;
-	}
-	
     if ((fd = open(device, O_RDWR)) == -1) {
         ALOGE("ERROR opening V4L interface: %s", strerror(errno));
         return -1;
@@ -158,9 +98,6 @@ void V4L2Camera::Close ()
 	if (fd > 0)
 		close(fd);
 	fd = -1;
-	
-	/* Power off Camera */
-	PowerOff();
 }
 
 static int my_abs(int x)
@@ -413,7 +350,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 	memset(&videoIn->rb,0,sizeof(videoIn->rb));
     videoIn->rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     videoIn->rb.memory = V4L2_MEMORY_MMAP;
-    videoIn->rb.count = MAX_NB_BUFFER;
+    videoIn->rb.count = NB_BUFFER;
 
     ret = ioctl(fd, VIDIOC_REQBUFS, &videoIn->rb);
     if (ret < 0) {
@@ -421,10 +358,7 @@ int V4L2Camera::Init(int width, int height, int fps)
         return ret;
     }
 
-	ALOGD("Init: Allocated %d buffers (requested: %d)", videoIn->rb.count, MAX_NB_BUFFER);
-	videoIn->nbBuffers = videoIn->rb.count;
-
-    for (int i = 0; i < videoIn->nbBuffers; i++) {
+    for (int i = 0; i < NB_BUFFER; i++) {
 
         memset (&videoIn->buf, 0, sizeof (struct v4l2_buffer));
         videoIn->buf.index = i;
@@ -433,7 +367,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 
         ret = ioctl (fd, VIDIOC_QUERYBUF, &videoIn->buf);
         if (ret < 0) {
-            ALOGE("Init: Unable to query buffer %d (%s)", i, strerror(errno));
+            ALOGE("Init: Unable to query buffer (%s)", strerror(errno));
             return ret;
         }
 
@@ -543,13 +477,12 @@ void V4L2Camera::Uninit ()
     nDequeued = 0;
 
     /* Unmap buffers */
-    for (int i = 0; i < videoIn->nbBuffers; i++)
+    for (int i = 0; i < NB_BUFFER; i++)
 		if (videoIn->mem[i] != NULL) {
 			if (munmap(videoIn->mem[i], videoIn->buf.length) < 0)
 				ALOGE("Uninit: Unmap failed");
 			videoIn->mem[i] = NULL;
 		}
-	videoIn->nbBuffers = 0;
 		
 	if (videoIn->tmpBuffer)
 		free(videoIn->tmpBuffer);
@@ -613,7 +546,7 @@ int V4L2Camera::getFps() const
 /* Grab frame in YUYV mode */
 void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 {
-	ALOGD("V4L2Camera::GrabRawFrame: frameBuffer:%p, len:%d",frameBuffer,maxSize);
+	LOG_FRAME("V4L2Camera::GrabRawFrame: frameBuffer:%p, len:%d",frameBuffer,maxSize);
     int ret;
 
 	/* DQ */
@@ -634,7 +567,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 	// And the pointer to the start of the image
 	uint8_t* src = (uint8_t*)videoIn->mem[videoIn->buf.index] + videoIn->capCropOffset;
 	
-	ALOGD("V4L2Camera::GrabRawFrame - Got Raw frame (%dx%d) (buf:%d@0x%p, len:%d)",videoIn->format.fmt.pix.width,videoIn->format.fmt.pix.height,videoIn->buf.index,src,videoIn->buf.bytesused);
+	LOG_FRAME("V4L2Camera::GrabRawFrame - Got Raw frame (%dx%d) (buf:%d@0x%p, len:%d)",videoIn->format.fmt.pix.width,videoIn->format.fmt.pix.height,videoIn->buf.index,src,videoIn->buf.bytesused);
 	
 	/* Avoid crashing! - Make sure there is enough room in the output buffer! */
 	if (maxSize < videoIn->outFrameSize) {
@@ -779,7 +712,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 				break;
 		}
 		
-		ALOGD("V4L2Camera::GrabRawFrame - Copied frame to destination 0x%p",frameBuffer);
+		LOG_FRAME("V4L2Camera::GrabRawFrame - Copied frame to destination 0x%p",frameBuffer);
 	}
 	
 	/* And Queue the buffer again */
@@ -791,7 +724,7 @@ void V4L2Camera::GrabRawFrame (void *frameBuffer, int maxSize)
 
     nQueued++;
 	
-	ALOGD("V4L2Camera::GrabRawFrame - Queued buffer");
+	LOG_FRAME("V4L2Camera::GrabRawFrame - Queued buffer");
 
 }
 

@@ -32,7 +32,6 @@ extern "C" {
 #include "CameraHardware.h"
 #include "Converter.h"
 
-#define VIDEO_DEVICE	"/dev/video0"
 #define MIN_WIDTH  		320
 #define MIN_HEIGHT 		240
 
@@ -105,10 +104,67 @@ extern "C" {
 #define PIXEL_FORMAT_YV16  0x36315659 /* YCrCb 4:2:2 Planar */
 #endif
 
+// File to control camera power
+#define CAMERA_POWER	    "/sys/devices/platform/shuttle-pm-camera/power_on"
+
 
 namespace android {
 
-CameraHardware::CameraHardware(const hw_module_t* module)
+char videodevice[64];
+
+bool CameraHardware::PowerOn()
+{
+	ALOGD("CameraHardware::PowerOn: Power ON camera.");
+	
+	// power on camera
+	int handle = ::open(CAMERA_POWER,O_RDWR);
+	if (handle >= 0) {
+		::write(handle,"1\n",2);
+		::close(handle);
+	} else {
+		ALOGE("Could not open %s for writing.", CAMERA_POWER);
+		return false;
+    } 
+	
+	// Wait until the camera is recognized or timed out
+	int timeOut = 500;
+	do {
+		// Try to open the video capture device
+		handle = ::open(videodevice,O_RDWR);
+		if (handle >= 0)
+			break;
+		// Wait a bit
+		::usleep(10000);
+	} while (--timeOut > 0);
+	
+	if (handle >= 0) {
+		ALOGD("Camera powered on");
+		::close(handle);
+		return true;
+	} else {
+		ALOGE("Unable to power camera");
+	}
+	
+	return false;
+}
+
+bool CameraHardware::PowerOff()
+{
+	ALOGD("CameraHardware::PowerOff: Power OFF camera.");
+	
+	// power on camera
+	int handle = ::open(CAMERA_POWER,O_RDWR);
+	if (handle >= 0) {
+		::write(handle,"0\n",2);
+		::close(handle);
+	} else {
+		ALOGE("Could not open %s for writing.", CAMERA_POWER);
+		return false;
+    } 
+	return true;
+}
+
+CameraHardware::CameraHardware(const hw_module_t* module, const char* videodev)
         :
 		mWin(0),	
 		mPreviewWinFmt(PIXEL_FORMAT_UNKNOWN),
@@ -153,6 +209,8 @@ CameraHardware::CameraHardware(const hw_module_t* module)
     /*
      * Initialize camera_device descriptor for this object.
      */
+    ALOGI("Using camera %s", videodev);
+    strncpy(videodevice, videodev, sizeof(videodevice));
 
     /* Common header */
     common.tag = HARDWARE_DEVICE_TAG;
@@ -163,6 +221,9 @@ CameraHardware::CameraHardware(const hw_module_t* module)
     /* camera_device fields. */
     ops = &mDeviceOps;
     priv = this;
+
+	// Power on camera
+	PowerOn();
 
 	// Init default parameters
     initDefaultParameters();
@@ -201,6 +262,8 @@ CameraHardware::~CameraHardware()
 		mJpegPictureHeap = NULL;
 	}
 	
+	// Power off camera
+	PowerOff();
 }
 
 bool CameraHardware::NegotiatePreviewFormat(struct preview_stream_ops* win)
@@ -253,12 +316,17 @@ status_t CameraHardware::closeCamera()
     return NO_ERROR;
 }
 
-status_t CameraHardware::getCameraInfo(struct camera_info* info)
+status_t CameraHardware::getCameraInfo(int camera_id, struct camera_info* info)
 {
     ALOGD("CameraHardware::getCameraInfo");
 
-    info->facing = CAMERA_FACING_FRONT;
-    info->orientation = 0;
+    if (camera_id == 0) {
+	info->facing = CAMERA_FACING_BACK;
+	info->orientation = 0;
+    } else {
+	info->facing = CAMERA_FACING_FRONT;
+	info->orientation = 0;
+    }
 
     return NO_ERROR;
 }
@@ -412,7 +480,7 @@ status_t CameraHardware::startPreviewLocked()
 	
     ALOGD("CameraHardware::startPreviewLocked: Open, %dx%d", width, height);
 
-    status_t ret = camera.Open(VIDEO_DEVICE);
+    status_t ret = camera.Open(videodevice);
 	if (ret != NO_ERROR) {
 		ALOGE("Failed to initialize Camera");
 		return ret;
@@ -749,7 +817,7 @@ void CameraHardware::initDefaultParameters()
 	SortedVector<SurfaceSize> avSizes;
 	SortedVector<int> avFps;
 	
-    if (camera.Open(VIDEO_DEVICE) != NO_ERROR) {
+    if (camera.Open(videodevice) != NO_ERROR) {
 	    ALOGE("cannot open device.");
 
     } else {
@@ -841,24 +909,24 @@ void CameraHardware::initDefaultParameters()
 	p.set(CameraParameters::KEY_ANTIBANDING,"auto");
 	
 	// Effects
-	p.set(CameraParameters::KEY_SUPPORTED_EFFECTS,CameraParameters::EFFECT_NONE); // "none,mono,sepia,negative,solarize"
-	p.set(CameraParameters::KEY_EFFECT,CameraParameters::EFFECT_NONE);
+	p.set(CameraParameters::KEY_SUPPORTED_EFFECTS,"none"); // "none,mono,sepia,negative,solarize"
+	p.set(CameraParameters::KEY_EFFECT,"none");
 	
 	// Flash modes
-	p.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES,CameraParameters::FLASH_MODE_OFF);
-	p.set(CameraParameters::KEY_FLASH_MODE,CameraParameters::FLASH_MODE_OFF);
+	p.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES,"off");
+	p.set(CameraParameters::KEY_FLASH_MODE,"off");
 	
 	// Focus modes
-	p.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,CameraParameters::FOCUS_MODE_FIXED);
-	p.set(CameraParameters::KEY_FOCUS_MODE,CameraParameters::FOCUS_MODE_FIXED);
-    p.set(CameraParameters::KEY_FOCUS_DISTANCES,"0.20,0.25,Infinity");
-
-	// Thumbnail
-	p.set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH,160);
-	p.set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT,120); 
+	p.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,"fixed");
+	p.set(CameraParameters::KEY_FOCUS_MODE,"fixed");
+	
+#if 0
+	p.set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT,0); 
 	p.set(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY,75);
-	p.set(CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES,"160x120,0x0");
+	p.set(CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES,"0x0");
 	p.set("jpeg-thumbnail-size","0x0");
+	p.set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH,0);
+#endif
 	
 	// Picture - Only JPEG supported
 	p.set(CameraParameters::KEY_SUPPORTED_PICTURE_FORMATS,CameraParameters::PIXEL_FORMAT_JPEG); // ONLY jpeg
@@ -868,21 +936,8 @@ void CameraHardware::initDefaultParameters()
 	p.set(CameraParameters::KEY_JPEG_QUALITY, 85);
 	
 	// Preview - Supporting yuv422i-yuyv,yuv422sp,yuv420sp, defaulting to yuv420sp, as that is the android Defacto default
-
-	
-#ifdef ORG	
 	p.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS,"yuv422i-yuyv,yuv422sp,yuv420sp,yuv420p"); // All supported preview formats
 	p.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV422SP); // For compatibility sake ... Default to the android standard
-#else
-    String8 previewColorString;
-    previewColorString = CameraParameters::PIXEL_FORMAT_YUV420SP;
-    previewColorString.append(",");
-    previewColorString.append(CameraParameters::PIXEL_FORMAT_YUV420P);
-	p.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, previewColorString.string());
-	p.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);	
-#endif
-	
-	
 	p.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, fpsranges);
 	p.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, fps);
 	p.setPreviewFrameRate( pfps );
@@ -900,12 +955,12 @@ void CameraHardware::initDefaultParameters()
 	p.set(CameraParameters::KEY_ROTATION,"0");
 	
 	// scenes modes
-	p.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES,CameraParameters::SCENE_MODE_AUTO);
-	p.set(CameraParameters::KEY_SCENE_MODE,CameraParameters::SCENE_MODE_AUTO);
+	p.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES,"auto");
+	p.set(CameraParameters::KEY_SCENE_MODE,"auto");
 	
 	// white balance
-	p.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE,CameraParameters::WHITE_BALANCE_AUTO);
-	p.set(CameraParameters::KEY_WHITE_BALANCE,CameraParameters::WHITE_BALANCE_AUTO);
+	p.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE,"auto");
+	p.set(CameraParameters::KEY_WHITE_BALANCE,"auto");
 
 	// zoom
 	p.set(CameraParameters::KEY_SMOOTH_ZOOM_SUPPORTED,"false");
@@ -915,9 +970,6 @@ void CameraHardware::initDefaultParameters()
     p.set(CameraParameters::KEY_ZOOM_RATIOS, "100");
     p.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
 
-	// Focal lenght
-	p.set(CameraParameters::KEY_FOCAL_LENGTH, "0.9");
-	
     if (setParameters(p.flatten()) != NO_ERROR) {
         ALOGE("CameraHardware::initDefaultParameters: Failed to set default parameters.");
     }
@@ -1220,7 +1272,7 @@ void CameraHardware::initHeapLocked()
 
 int CameraHardware::previewThread()
 {
-    ALOGD("CameraHardware::previewThread: this=%p",this);
+    ALOGV("CameraHardware::previewThread: this=%p",this);
 
     int previewFrameRate = mParameters.getPreviewFrameRate();
 
@@ -1408,7 +1460,7 @@ int CameraHardware::previewThread()
         mDataCbTimestamp(timestamp, CAMERA_MSG_VIDEO_FRAME, mRecordingHeap, recBufferIdx, mCallbackCookie);
 	}
 
-    ALOGD("previewThread OK");
+    ALOGV("previewThread OK");
 
     // Wait for it...
     usleep(delay);
@@ -1502,7 +1554,7 @@ void CameraHardware::fillPreviewWindow(uint8_t* yuyv, int srcWidth, int srcHeigh
 		bytesPerPixel = 2;
 	}
 
-	ALOGD("ANativeWindow: bits:%p, stride in pixels:%d, w:%d, h: %d, format: %d",vaddr,stride,mPreviewWinWidth,mPreviewWinHeight,mPreviewWinFmt);
+	ALOGV("ANativeWindow: bits:%p, stride in pixels:%d, w:%d, h: %d, format: %d",vaddr,stride,mPreviewWinWidth,mPreviewWinHeight,mPreviewWinFmt);
 
 	// Based on the destination pixel type, we must convert from YUYV to it
 	int dstStride = bytesPerPixel * stride;
@@ -1619,7 +1671,7 @@ int CameraHardware::pictureThread()
 
 		ALOGD("CameraHardware::pictureThread: taking picture (%d x %d)", w, h);
 
-		if (camera.Open(VIDEO_DEVICE) == NO_ERROR) {
+		if (camera.Open(videodevice) == NO_ERROR) {
 			camera.Init(w, h, 1);
 			
 			/* Retrieve the real size being used */

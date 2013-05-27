@@ -9,7 +9,7 @@
 #ifndef _V4L2CAMERA_H
 #define _V4L2CAMERA_H
 
-#define MAX_NB_BUFFER 4
+#define NB_BUFFER 4
 
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
@@ -29,8 +29,7 @@ struct vdIn {
 	struct v4l2_streamparm params;  		// v4l2 stream parameters struct
 	struct v4l2_jpegcompression jpegcomp;	// v4l2 jpeg compression settings 
 	
-    void *mem[MAX_NB_BUFFER];
-	int  nbBuffers;							// Number of buffers
+    void *mem[NB_BUFFER];
     bool isStreaming;
 	
 	void* tmpBuffer;
@@ -69,8 +68,6 @@ public:
 	const SurfaceDesc& getBestPictureFmt() const; 	
 	
 private:
-	bool PowerOn(const char *device);
-	bool PowerOff();
 	bool EnumFrameIntervals(int pixfmt, int width, int height);
 	bool EnumFrameSizes(int pixfmt);
 	bool EnumFrameFormats(); 

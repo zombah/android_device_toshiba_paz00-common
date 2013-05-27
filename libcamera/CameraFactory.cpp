@@ -23,6 +23,8 @@
 #define LOG_TAG "Camera_Factory"
 #include <cutils/log.h>
 #include <cutils/properties.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 #include "CameraFactory.h"
 
 extern camera_module_t HAL_MODULE_INFO_SYM;
@@ -59,26 +61,47 @@ CameraFactory::~CameraFactory()
 
 int CameraFactory::cameraDeviceOpen(const hw_module_t* module,int camera_id, hw_device_t** device)
 {
-    ALOGD("CameraFactory::cameraDeviceOpen: id = %d", camera_id);
+	ALOGD("CameraFactory::cameraDeviceOpen: id = %d", camera_id);
 
-    *device = NULL;
+	*device = NULL;
 
-    if (camera_id < 0 || camera_id >= getCameraNum()) {
-        ALOGE("%s: Camera id %d is out of bounds (%d)",
-             __FUNCTION__, camera_id, getCameraNum());
-        return -EINVAL;
-    }
-	
-	if (!mCamera)
-		mCamera = new CameraHardware(module);	
+	if (camera_id < 0 || camera_id >= getCameraNum()) {
+		ALOGE("%s: Camera id %d is out of bounds (%d)",
+			__FUNCTION__, camera_id, getCameraNum());
+		return -EINVAL;
+	}
 
-    return mCamera->connectCamera(device);
+	/* Lets destroy the cam so we can use a new /dev/videoX */
+	if (mCamera != NULL) {
+		delete mCamera;
+		mCamera = NULL;
+	}
+
+	int handle = ::open("/dev/video1", O_RDONLY);
+	if (handle >= 0) {
+		::close(handle);
+		ALOGI("Using 2 cameras!");
+		if (camera_id==0) {
+			ALOGI("Returning /dev/video1");
+			mCamera = new CameraHardware(module, "/dev/video1");
+		} else {
+			ALOGI("Returning /dev/video0");
+			mCamera = new CameraHardware(module, "/dev/video0");
+		}
+	} else {
+		ALOGI("Using 1 camera!");
+		ALOGI("Returning /dev/video0");
+		mCamera = new CameraHardware(module, "/dev/video0");
+	}
+
+	return mCamera->connectCamera(device);
 }
 
 /* Returns the number of available cameras */
 int CameraFactory::getCameraNum()
 {
 	ALOGD("CameraFactory::getCameraNum");
+
 	return 2;
 }
 
@@ -95,7 +118,7 @@ int CameraFactory::getCameraInfo(int camera_id, struct camera_info* info)
 	
 
 	ALOGD("CameraFactory::getCameraInfo: about to fetch info");
-    return CameraHardware::getCameraInfo(info);
+    return CameraHardware::getCameraInfo(camera_id, info);
 }
 
 /****************************************************************************
