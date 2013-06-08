@@ -33,12 +33,20 @@ on fs
 
 # Basic modules loading below
 # install wifi modules
-    insmod /system/lib/modules/cfg80211.ko
-    insmod /system/lib/modules/lib80211.ko
-    insmod /system/lib/modules/mac80211.ko 
-    insmod /system/lib/modules/rt2x00lib.ko
-    insmod /system/lib/modules/rt2x00usb.ko
-    insmod /system/lib/modules/rt2800lib.ko
+    insmod /system/vendor/lib/modules/compat.ko
+    insmod /system/vendor/lib/modules/sch_codel.ko
+    insmod /system/vendor/lib/modules/sch_fq_codel.ko 
+    insmod /system/vendor/lib/modules/cfg80211.ko
+    insmod /system/vendor/lib/modules/mac80211.ko
+    insmod /system/vendor/lib/modules/rt2x00lib.ko
+    insmod /system/vendor/lib/modules/rt2x00usb.ko
+    insmod /system/vendor/lib/modules/rt2800lib.ko
+#    insmod /system/lib/modules/cfg80211.ko
+##    insmod /system/lib/modules/lib80211.ko
+#    insmod /system/lib/modules/mac80211.ko 
+#    insmod /system/lib/modules/rt2x00lib.ko
+#    insmod /system/lib/modules/rt2x00usb.ko
+#    insmod /system/lib/modules/rt2800lib.ko
 # install fs modules    
     insmod /system/lib/modules/ntfs.ko
     insmod /system/lib/modules/cifs.ko
@@ -144,7 +152,7 @@ on boot
 # Increase read ahead size of mmc block devices from default(128) to 1MB
 # Reduces power comsuption during video playback from sdcards
     write /sys/block/mmcblk0/queue/read_ahead_kb 128
-    write /sys/block/mmcblk1/queue/read_ahead_kb 2048
+    write /sys/block/mmcblk1/queue/read_ahead_kb 1024
 
 service wpa_supplicant /system/bin/wpa_supplicant \
     -Dnl80211 -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
