@@ -10,6 +10,7 @@ insmod /system/lib/modules/asix.ko
 insmod /system/lib/modules/hid-sony.ko
 # USB Audio support
 insmod /system/lib/modules/snd-hwdep.ko
+insmod /system/lib/modules/snd-rawmidi.ko
 insmod /system/lib/modules/snd-usbmidi-lib.ko
 insmod /system/lib/modules/snd-usb-audio.ko
 # RNDIS
