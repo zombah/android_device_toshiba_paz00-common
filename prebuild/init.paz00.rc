@@ -130,7 +130,7 @@ on boot
     write /sys/devices/system/cpu/cpufreq/interactive/boost_factor 2
     write /sys/devices/system/cpu/cpufreq/interactive/input_boost 1
     write /sys/devices/system/cpu/cpufreq/interactive/sustain_load 0
-    write /sys/module/cpuidle/parameters/lp2_in_idle 1
+    write /sys/module/cpuidle/parameters/lp2_in_idle 0
 
 
 # Interactive governor settings
