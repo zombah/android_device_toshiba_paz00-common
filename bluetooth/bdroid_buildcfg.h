@@ -17,15 +17,10 @@
 #ifndef _BDROID_BUILDCFG_H
 #define _BDROID_BUILDCFG_H
 
-#define BTM_DEF_LOCAL_NAME "Nexus 7"
-
-// Networking, Capturing, Object Transfer
-// MAJOR CLASS: COMPUTER
-// MINOR CLASS: PALM SIZE PC/PDA
-#define BTA_DM_COD {0x1A, 0x01, 0x14}
-
-#define BTIF_HF_SERVICES (BTA_HSP_SERVICE_MASK)
-#define BTIF_HF_SERVICE_NAMES  { BTIF_HSAG_SERVICE_NAME }
-#define PAN_NAP_DISABLED TRUE
+#define BTM_DEF_LOCAL_NAME "Toshiba AC100"
+// At present either USB or UART is supported
+#define BLUETOOTH_HCI_USE_USB          TRUE
+// Bluetooth Low Power Mode is supported on BT4.0
+#define HCILP_INCLUDED                 FALSE
 
 #endif
