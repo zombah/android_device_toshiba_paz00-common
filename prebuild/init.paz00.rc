@@ -109,7 +109,7 @@ on post-fs-data
     chown media_rw media_rw /data/media
 
     # change back to bluetooth from system
-    chown bluetooth bluetooth /data/misc/bluetooth
+    chown bluetooth net_bt_stack /data/misc/bluetooth
 
     # Set indication (checked by vold) that we have finished this action
     setprop vold.post_fs_data_done 1
@@ -119,7 +119,7 @@ on boot
 # bluetooth
     # UART device
     chmod 0660 /dev/ttyHS2
-    chown bluetooth bluetooth /dev/ttyHS2
+    chown bluetooth net_bt_stack /dev/ttyHS2
 
     # power up/down interface
 #    wait /sys/class/rfkill/rfkill1/state
