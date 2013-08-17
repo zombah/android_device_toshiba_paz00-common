@@ -128,12 +128,6 @@
 
 <!-- new unstable settings -->
 
-    <!-- Package name providing network location support. -->
-    <string name="config_networkLocationProviderPackageName" translatable="false">@null</string>
-
-    <!-- Package name providing geocoder API support. -->
-    <string name="config_geocodeProviderPackageName" translatable="false">@null</string>
-
      <!-- The number of degrees to rotate the display when the keyboard is open. -->
      <integer name="config_lidOpenRotation">0</integer>
 
@@ -219,12 +213,6 @@
     <string-array translatable="false" name="config_serialPorts">
     /dev/ttyUSB0
     </string-array>
-
-    <!-- enable screen saver feature -->
-    <bool name="config_enableDreams">true</bool>
-
-    <!-- Name of screensaver components to look for if none has been chosen by the user -->
-    <string name="config_defaultDreamComponent" translatable="false">com.google.android.deskclock/com.android.deskclock.Screensaver</string>
 
     <!-- Set to true to add links to Cell Broadcast app from Settings and MMS app. -->
     <bool name="config_cellBroadcastAppLinks">true</bool>
