@@ -30,6 +30,7 @@ on init
     mkdir /storage/usbdisk 0666 system system
     symlink /storage/usbdisk /mnt/usb_storage
     symlink /storage/usbdisk /mnt/usbdisk
+    symlink /storage/usbdisk /mnt/usb
     symlink /storage/usbdisk /usbdisk
 
 on early-boot
