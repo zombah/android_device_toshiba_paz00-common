@@ -16,8 +16,6 @@
 #include "wpa_supplicant_i.h"
 #include "config.h"
 
-#define WPA_EVENT_DRIVER_STATE		"CTRL-EVENT-DRIVER-STATE "
-
 #define WPA_PS_ENABLED		0
 #define WPA_PS_DISABLED		1
 
