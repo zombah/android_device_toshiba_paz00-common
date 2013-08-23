@@ -79,8 +79,7 @@ endif
 # Wifi base
 BOARD_WLAN_DEVICE                       := wlan0
 WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
-WIFI_DRIVER_MODULE_PATH                 := "/system/vendor/lib/modules/rt2800usb.ko"
-#WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
+WIFI_DRIVER_MODULE_PATH                 := "/system/lib/modules/rt2800usb.ko"
 WIFI_DRIVER_MODULE_ARG                  := "nohwcrypt=1"
 WIFI_DRIVER_FW_PATH_STA                 := "/system/vendor/firmware/rt2870.bin"
 WIFI_DRIVER_FW_PATH_P2P                 := "/system/vendor/firmware/rt2870.bin"
