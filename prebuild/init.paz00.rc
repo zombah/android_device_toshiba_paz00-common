@@ -23,7 +23,7 @@ on init
     symlink /mnt/shell/emulated/0 /storage/emulated/legacy
 
     # create directory for mounting usb drives
-    mkdir /storage/usbdisk 0666 system system
+    mkdir /storage/usbdisk 0000 system system
     symlink /storage/usbdisk /mnt/usb_storage
     symlink /storage/usbdisk /mnt/usbdisk
     symlink /storage/usbdisk /mnt/usb
@@ -42,20 +42,13 @@ on fs
 
 # Basic modules loading below
 # install wifi modules
-    insmod /system/vendor/lib/modules/compat.ko
-    insmod /system/vendor/lib/modules/sch_codel.ko
-    insmod /system/vendor/lib/modules/sch_fq_codel.ko 
-    insmod /system/vendor/lib/modules/cfg80211.ko
-    insmod /system/vendor/lib/modules/mac80211.ko
-    insmod /system/vendor/lib/modules/rt2x00lib.ko
-    insmod /system/vendor/lib/modules/rt2x00usb.ko
-    insmod /system/vendor/lib/modules/rt2800lib.ko
-#    insmod /system/lib/modules/cfg80211.ko
-##    insmod /system/lib/modules/lib80211.ko
-#    insmod /system/lib/modules/mac80211.ko 
-#    insmod /system/lib/modules/rt2x00lib.ko
-#    insmod /system/lib/modules/rt2x00usb.ko
-#    insmod /system/lib/modules/rt2800lib.ko
+    insmod /system/lib/modules/compat.ko
+    insmod /system/lib/modules/cfg80211.ko
+#    insmod /system/lib/modules/lib80211.ko
+    insmod /system/lib/modules/mac80211.ko 
+    insmod /system/lib/modules/rt2x00lib.ko
+    insmod /system/lib/modules/rt2x00usb.ko
+    insmod /system/lib/modules/rt2800lib.ko
 # install fs modules    
     insmod /system/lib/modules/ntfs.ko
     insmod /system/lib/modules/cifs.ko
@@ -235,8 +228,8 @@ service iprenew_bnep0 /system/bin/dhcpcd -n
 # create virtual SD card at /mnt/sdcard, based on the /data/media directory
 # deamon will drop to user/group system/media_rw after initializing
 # underlying files in /data/media wil be created with user and group media_rw (1023)
-#service sdcard /system/bin/sdcard /data/media 1023 1023
-#    class late_start
+service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
+    class late_start
 
 # Start GPS daemon
 #service gps-daemon /system/bin/glgps_nvidiaTegra2android -c /system/etc/gps/gpsconfig.xml
