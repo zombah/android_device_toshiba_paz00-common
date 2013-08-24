@@ -311,5 +311,9 @@
 
     <!-- Default LED off time for notification LED in milliseconds. -->
     <!-- <integer name="config_defaultNotificationLedOff">5000</integer> -->
+
+    <!--  Maximum number of supported users -->
+    <integer name="config_multiuserMaximumUsers">4</integer>
+
 </resources>
 
