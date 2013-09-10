@@ -114,6 +114,12 @@ struct tiny_dev_cfg {
     unsigned int off_len;
 };
 
+enum {
+	IN = 0,
+	OUT = 1,
+	INOUT_SIZE,
+};
+
 struct tiny_audio_device {
     struct audio_hw_device device;
     struct mixer *mixer;
@@ -123,8 +129,8 @@ struct tiny_audio_device {
     pthread_mutex_t route_lock;
     struct tiny_dev_cfg *dev_cfgs;
     int num_dev_cfgs;
-    int active_devices;
-    int devices;
+    int active_devices[2];
+    int devices[2];
 
     int orientation;
     bool mic_mute;
@@ -180,28 +186,30 @@ struct tiny_stream_in {
 /* Must be called with route_lock */
 void select_devices(struct tiny_audio_device *adev)
 {
-    int i;
+    int i, j;
 
-    if (adev->active_devices == adev->devices)
-	return;
+    for (j = 0; j < INOUT_SIZE; j++) {
+	if (adev->active_devices[j] == adev->devices[j])
+            continue;
 
-    ALOGV("Changing devices %x => %x\n", adev->active_devices, adev->devices);
+        ALOGV("Changing devices %x => %x\n", adev->active_devices[j], adev->devices[j]);
 
-    /* Turn on new devices first so we don't glitch due to powerdown... */
-    for (i = 0; i < adev->num_dev_cfgs; i++)
-	if ((adev->devices & adev->dev_cfgs[i].mask) &&
-	    !(adev->active_devices & adev->dev_cfgs[i].mask))
-	    set_route_by_array(adev->mixer, adev->dev_cfgs[i].on,
-			       adev->dev_cfgs[i].on_len);
+        /* Turn on new devices first so we don't glitch due to powerdown... */
+	for (i = 0; i < adev->num_dev_cfgs; i++)
+            if ((adev->devices[j] & adev->dev_cfgs[i].mask) &&
+		!(adev->active_devices[j] & adev->dev_cfgs[i].mask))
+		set_route_by_array(adev->mixer, adev->dev_cfgs[i].on,
+				   adev->dev_cfgs[i].on_len);
 
-    /* ...then disable old ones. */
-    for (i = 0; i < adev->num_dev_cfgs; i++)
-	if (!(adev->devices & adev->dev_cfgs[i].mask) &&
-	    (adev->active_devices & adev->dev_cfgs[i].mask))
-	    set_route_by_array(adev->mixer, adev->dev_cfgs[i].off,
-			       adev->dev_cfgs[i].off_len);
+	/* ...then disable old ones. */
+	for (i = 0; i < adev->num_dev_cfgs; i++)
+	    if (!(adev->devices[j] & adev->dev_cfgs[i].mask) &&
+		(adev->active_devices[j] & adev->dev_cfgs[i].mask))
+		set_route_by_array(adev->mixer, adev->dev_cfgs[i].off,
+				   adev->dev_cfgs[i].off_len);
 
-    adev->active_devices = adev->devices;
+        adev->active_devices[j] = adev->devices[j];
+     }
 }
 
 
@@ -351,8 +359,7 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
 	if (val != 0) {
 	    pthread_mutex_lock(&adev->route_lock);
 
-            adev->devices &= ~AUDIO_DEVICE_OUT_ALL;
-            adev->devices |= val;
+            adev->devices[OUT] = val;
             select_devices(adev);
 
 	    pthread_mutex_unlock(&adev->route_lock);
@@ -396,7 +403,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         if (adev->dev_cfgs[i].mask & AUDIO_DEVICE_OUT_ALL) {
             int card = adev->dev_cfgs[i].card;
             int dev  = adev->dev_cfgs[i].device;
-            if (adev->devices & adev->dev_cfgs[i].mask) {
+            if (adev->devices[OUT] & adev->dev_cfgs[i].mask) {
                 active[card * MAX_PCM_DEVICES + dev] = 1;
                 no_devs++;
             }
@@ -656,7 +663,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
         ret = read_frames(in, buffer, frames_rq);
     else
         ret = pcm_read(in->pcm, buffer, bytes);
-    if (ret != 0) {
+    if (ret < 0) {
 	ALOGE("in_read(%p) failed: %d\n", stream, ret);
 	return ret;
     }
@@ -715,8 +722,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     out->adev = adev;
 
     pthread_mutex_lock(&adev->route_lock);
-    adev->devices &= ~AUDIO_DEVICE_OUT_ALL;
-    adev->devices |= devices;
+    adev->devices[OUT] = devices;
     select_devices(adev);
     pthread_mutex_unlock(&adev->route_lock);
 
@@ -914,8 +920,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
     in->stream.get_input_frames_lost = in_get_input_frames_lost;
 
     pthread_mutex_lock(&adev->route_lock);
-    adev->devices &= ~AUDIO_DEVICE_IN_ALL;
-    adev->devices |= devices;
+    adev->devices[IN] = devices;
     select_devices(adev);
     pthread_mutex_unlock(&adev->route_lock);
 
@@ -990,18 +995,6 @@ static int adev_close(hw_device_t *device)
 {
     free(device);
     return 0;
-}
-
-static uint32_t adev_get_supported_devices(const struct audio_hw_device *dev)
-{
-    struct tiny_audio_device *adev = (struct tiny_audio_device *)dev;
-    uint32_t supported = 0;
-    int i;
-
-    for (i = 0; i < adev->num_dev_cfgs; i++)
-	supported |= adev->dev_cfgs[i].mask;
-
-    return supported;
 }
 
 struct config_parse_state {
@@ -1258,11 +1251,10 @@ static int adev_open(const hw_module_t* module, const char* name,
         return -ENOMEM;
 
     adev->device.common.tag = HARDWARE_DEVICE_TAG;
-    adev->device.common.version = AUDIO_DEVICE_API_VERSION_1_0;
+    adev->device.common.version = AUDIO_DEVICE_API_VERSION_2_0;
     adev->device.common.module = (struct hw_module_t *) module;
     adev->device.common.close = adev_close;
 
-    adev->device.get_supported_devices = adev_get_supported_devices;
     adev->device.init_check = adev_init_check;
     adev->device.set_voice_volume = adev_set_voice_volume;
     adev->device.set_master_volume = adev_set_master_volume;
@@ -1292,7 +1284,8 @@ static int adev_open(const hw_module_t* module, const char* name,
     /* Bootstrap routing */
     pthread_mutex_init(&adev->route_lock, NULL);
     adev->mode = AUDIO_MODE_NORMAL;
-    adev->devices = AUDIO_DEVICE_OUT_SPEAKER | AUDIO_DEVICE_IN_BUILTIN_MIC;
+    adev->devices[OUT] = AUDIO_DEVICE_OUT_SPEAKER;
+    adev->devices[IN] = AUDIO_DEVICE_IN_BUILTIN_MIC;
     select_devices(adev);
 
     *device = &adev->device.common;
