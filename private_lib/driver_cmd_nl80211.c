@@ -276,7 +276,10 @@ int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
 			    (os_strcasecmp(cmd, "GETBAND") == 0) ||
 			    (os_strcasecmp(cmd, "P2P_GET_NOA") == 0))
 				ret = strlen(buf);
-
+			
+			else if (os_strcasecmp(cmd, "COUNTRY") == 0)
+			  wpa_supplicant_event(drv->ctx,
+			    EVENT_CHANNEL_LIST_CHANGED, NULL);
 			wpa_printf(MSG_DEBUG, "%s %s len = %d, %d", __func__, buf, ret, strlen(buf));
 		}
 #endif
