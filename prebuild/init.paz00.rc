@@ -52,7 +52,7 @@ on fs
 # install wifi modules
     insmod /system/lib/modules/compat.ko
     insmod /system/lib/modules/cfg80211.ko
-#    insmod /system/lib/modules/lib80211.ko
+    insmod /system/lib/modules/lib80211.ko
     insmod /system/lib/modules/mac80211.ko 
     insmod /system/lib/modules/rt2x00lib.ko
     insmod /system/lib/modules/rt2x00usb.ko
