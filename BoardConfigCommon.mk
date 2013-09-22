@@ -64,8 +64,6 @@ WPA_SUPPLICANT_VERSION                  := VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB        := private_lib_driver_cmd
 BOARD_HOSTAPD_DRIVER                    := WEXT
 BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
-# Unknow option
-#BOARD_LEGACY_NL80211_STA_EVENTS  	:= true
 endif
 
 ifdef USES_BCMHD_NL80211
@@ -74,6 +72,9 @@ WPA_SUPPLICANT_VERSION                  := VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB        := private_lib_driver_cmd
 BOARD_HOSTAPD_DRIVER                    := NL80211
 BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
+# Unknow options
+BOARD_LEGACY_NL80211_STA_EVENTS         := false
+BOARD_NO_APSME_ATTR			:= false
 endif
 
 # Wifi base
