@@ -9,15 +9,12 @@ on init
     mkdir /storage/emulated 0555 root root
     mkdir /storage 0550 system sdcard_r
     mkdir /storage/sdcard1 0000 system system
-    mkdir /storage/sdcard2 0000 system system
 
     export EXTERNAL_STORAGE /storage/emulated/legacy
     export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
     export EMULATED_STORAGE_TARGET /storage/emulated
 
     export SECONDARY_STORAGE /storage/sdcard1
-    export SECOND_VOLUME_STORAGE /storage/sdcard1
-    export THIRD_VOLUME_STORAGE /storage/sdcard2
 
     # Support legacy paths
     symlink /storage/emulated/legacy /sdcard
@@ -26,9 +23,7 @@ on init
     symlink /mnt/shell/emulated/0 /storage/emulated/legacy
 
     # for backwards compatibility
-    symlink /storage/sdcard2 /mnt/external_sd
-    symlink /storage/sdcard1 /mnt/sdcard
-    symlink /storage/sdcard1 /sdcard
+    symlink /storage/sdcard1 /mnt/external_sd
 
     # create directory for mounting usb drives
     mkdir /storage/usbdisk 0000 system system
