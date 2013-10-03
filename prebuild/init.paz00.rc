@@ -106,6 +106,9 @@ on post-fs-data
 
     # change back to bluetooth from system
     chown bluetooth net_bt_stack /data/misc/bluetooth
+    # permissions for bluetooth Mac address
+    chown bluetooth bluetooth /system/etc/bluetooth
+    chmod 755 /system/etc/bluetooth
 
     # Set indication (checked by vold) that we have finished this action
     setprop vold.post_fs_data_done 1
