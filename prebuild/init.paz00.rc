@@ -89,6 +89,9 @@ on fs
 # install zram module
     insmod /system/lib/modules/zram.ko
 
+# Run init.sh with custom operations
+    exec /system/bin/logwrapper /system/bin/sh /system/etc/init.sh
+
 on post-fs-data
 # Setup paths used for socket communication with the dhcp daemon(dhcpd)
     mkdir /data/misc/wifi 0770 wifi wifi
