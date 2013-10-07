@@ -43,12 +43,12 @@ BOARD_HAS_NO_SELECT_BUTTON              := true
 BOARD_HAS_LARGE_FILESYSTEM              := true
 #TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
 
-#BOARD_WPA_SUPPLICANT_DRIVER             := NL80211
-BOARD_WPA_SUPPLICANT_DRIVER             := WEXT
+BOARD_WPA_SUPPLICANT_DRIVER             := NL80211
+#BOARD_WPA_SUPPLICANT_DRIVER             := WEXT
 WPA_SUPPLICANT_VERSION                  := VER_0_8_X
 BOARD_WPA_SUPPLICANT_PRIVATE_LIB        := private_lib_driver_cmd
-#BOARD_HOSTAPD_DRIVER                    := NL80211
-BOARD_HOSTAPD_DRIVER                    := WEXT
+BOARD_HOSTAPD_DRIVER                    := NL80211
+#BOARD_HOSTAPD_DRIVER                    := WEXT
 BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
 # Unknow options
 BOARD_LEGACY_NL80211_STA_EVENTS         := false
