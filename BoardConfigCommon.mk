@@ -69,6 +69,7 @@ BOARD_HAVE_BLUETOOTH 			:= true
 BLUETOOTH_HCI_USE_USB 			:= true
 BOARD_HAVE_BLUETOOTH_BCM 		:= true
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/toshiba/paz00-common/bluetooth
+BOARD_BLUETOOTH_DOES_NOT_USE_RFKILL    	:= true
 
 BOARD_KERNEL_BASE 			:= 0x10000000
 BOARD_PAGE_SIZE 			:= 0x00000800
@@ -108,3 +109,5 @@ TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/l
 # Use a smaller subset of system fonts to keep image size lower
 #SMALLER_FONT_FOOTPRINT 			:= false
 
+# Use less memory for dalvik
+TARGET_ARCH_LOWMEM 			:= true
