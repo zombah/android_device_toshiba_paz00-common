@@ -50,4 +50,7 @@
 /sys/devices/platform/tegra-ehci.1/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill*          type   0660 bluetooth net_bt_stack
 
 # for bluetooth nodes
-/dev/uhid                 	0660   	bluetooth bluetooth
+#/dev/uhid                 	0660   	bluetooth bluetooth
+
+# bt device
+/dev/bus/usb/001/004		0660	bluetooth bluetooth
