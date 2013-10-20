@@ -122,8 +122,8 @@ on boot
 
 # bluetooth
     # UART device
-    chmod 0660 /dev/ttyHS2
-    chown bluetooth net_bt_stack /dev/ttyHS2
+#    chmod 0660 /dev/ttyHS2
+#    chown bluetooth net_bt_stack /dev/ttyHS2
 
     # power up/down interface
 #    wait /sys/class/rfkill/rfkill1/state
