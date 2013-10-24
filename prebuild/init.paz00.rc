@@ -10,6 +10,8 @@ on init
     mkdir /storage 0550 system sdcard_r
     mkdir /storage/sdcard1 0000 system system
     mkdir /storage/sdcard2 0000 system system
+    mkdir /boot 0775 root system
+    mkdir /recovery 0775 root system
 
     export EXTERNAL_STORAGE /storage/emulated/legacy
     export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
