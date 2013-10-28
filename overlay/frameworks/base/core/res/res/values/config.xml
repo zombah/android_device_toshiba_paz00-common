@@ -320,16 +320,5 @@
     <!-- When true use the linux /dev/input/event subsystem to detect the switch changes
          on the headphone/microphone jack. When false use the older uevent framework. -->
     <bool name="config_useDevInputEventForAudioJack">true</bool>
-
-    <!-- Is the notification LED intrusive? Used to decide if there should be a disable option -->
-    <bool name="config_intrusiveNotificationLed">true</bool>
-
-    <!-- Control the default UI mode type to use when there is no other type override
-         happening.  One of the following values (See Configuration.java):
-             1  UI_MODE_TYPE_NORMAL
-             4  UI_MODE_TYPE_TELEVISION
-             5  UI_MODE_TYPE_APPLIANCE
-         Any other values will have surprising consequences. -->
-    <integer name="config_defaultUiModeType">4</integer>
 </resources>
 
