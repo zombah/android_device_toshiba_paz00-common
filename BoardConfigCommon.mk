@@ -109,13 +109,3 @@ TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/l
 
 # Use less memory for dalvik
 TARGET_ARCH_LOWMEM 			:= true
-
-# Custom hwcomposer wrapper
-BOARD_USES_CUSTOM_HWC			:= false
-
-ifeq ($(BOARD_USES_CUSTOM_HWC),false)
-# Use tegra ICS video blobs
-BOARD_EGL_NEEDS_LEGACY_FB		:= true
-MAX_EGL_CACHE_KEY_SIZE			:= 4096
-MAX_EGL_CACHE_SIZE			:= 2146304
-endif
