@@ -44,17 +44,7 @@
     <bool name="config_showNavigationBar">true</bool>
 
     <!-- If this is true, the screen will come on when you unplug usb/power/whatever. -->
-    <bool name="config_unplugTurnsOnScreen">false</bool>
-
-    <!-- Values greater or equal to 0 will enable electronbeam screen-on
-         animation with the specified delay (in milliseconds), -1 will disable the animation -->
-    <!-- <integer name="config_screenOnAnimation">-1</integer> -->
-
-    <!-- True will enable the electron beam screen-off animation. -->
-    <bool name="config_screenOffAnimation">true</bool>
-
-    <!-- Enable datausage threshhold in the Settings -> Data usage menu -->
-    <string name="config_datause_iface">wlan0</string>
+    <bool name="config_unplugTurnsOnScreen">true</bool>
 
     <!-- Indicate whether the SD card is accessible without removing the battery. -->
     <bool name="config_batterySdCardAccessibility">true</bool>
@@ -88,7 +78,6 @@
 	<item>1</item>
 	<item>5</item>
 	<item>7</item>
-	<item>9</item>
     </integer-array>
     
     <!-- XXXXX NOTE THE FOLLOWING RESOURCES USE THE WRONG NAMING CONVENTION.
@@ -106,16 +95,11 @@
     <string-array translatable="false" name="networkAttributes">
 	<item>"wifi,1,1,1,-1,true"</item>
 	<item>"mobile,0,0,0,-1,true"</item>
-	<item>"mobile_mms,2,0,2,60000,true"</item>
 	<item>"mobile_supl,3,0,2,60000,true"</item>
 	<item>"mobile_dun,4,0,3,60000,true"</item>
 	<item>"mobile_hipri,5,0,3,60000,true"</item>
-	<item>"mobile_fota,10,0,2,60000,true"</item>
-	<item>"mobile_ims,11,0,2,60000,true"</item>
-	<item>"mobile_cbs,12,0,2,60000,true"</item>
-	<item>"bluetooth,7,7,2,-1,true"</item>
+	<item>"mobile_bluetooth,7,7,1,-1,true"</item>
 	<item>"ethernet,9,9,4,-1,true"</item>
-	<item>"bt_dun,14,14,2,-1,true"</item>
     </string-array>
 
     <!-- This string array should be overridden by the device to present a list of radio
@@ -150,14 +134,7 @@
           a keyboard is present. -->
      <bool name="config_showMenuShortcutsWhenKeyboardPresent">true</bool>
 
-     <!-- Control the behavior when the user long presses the power button.
-     	0 - Nothing
-     	1 - Global actions menu
-     	2 - Power off (with confirmation)
-     -->
-    <integer name="config_longPressOnPowerBehavior">1</integer>
-
-       <!-- List of file paths for USB host busses to exclude from USB host support.
+     <!-- List of file paths for USB host busses to exclude from USB host support.
           For example, if the first USB bus on the device is used to communicate
           with the modem or some other restricted hardware, add "/dev/bus/usb/001/"
           to this list.  If this is empty, no parts of the host USB bus will be excluded.
@@ -190,14 +167,6 @@
        config to 7. -->
     <integer name="config_deviceHardwareKeys">31</integer>
 
-    <!-- If a dock provides a lid switch, that lid can be removed. This
-         setting is used to determine, whether lidOpenRotation has to be
-         applied. -->
-    <bool name="config_hasRemovableLid">true</bool>
-    
-    <!-- Setting to false will disable CM's IME switcher implementation for tablets -->
-    <bool name="config_show_cmIMESwitcher">false</bool>
-
     <!-- Boolean indicating whether Softap requires reloading AP firmware -->
     <bool name="config_wifiApFirmwareReload">false</bool>
 
@@ -211,16 +180,6 @@
          it causes the device to wake up.
          The default is false. -->
     <bool name="config_lidControlsSleep">true</bool>
-
-    <!-- List of paths to serial ports that are available to the serial manager.
-         for example, /dev/ttyUSB0
-    -->
-    <string-array translatable="false" name="config_serialPorts">
-    /dev/ttyUSB0
-    </string-array>
-
-    <!-- Set to true to add links to Cell Broadcast app from Settings and MMS app. -->
-    <bool name="config_cellBroadcastAppLinks">true</bool>
 
     <!-- Flag indicating whether the we should enable the automatic brightness in Settings.
          Software implementation will be used if config_hardware_auto_brightness_available is not set -->
@@ -320,5 +279,46 @@
     <!-- When true use the linux /dev/input/event subsystem to detect the switch changes
          on the headphone/microphone jack. When false use the older uevent framework. -->
     <bool name="config_useDevInputEventForAudioJack">true</bool>
+
+    <!-- Boolean indicating if current platform need do one-time bluetooth address
+         re-validation -->
+    <bool name="config_bluetooth_address_validation">true</bool>
+    
+    <!-- Enable puk unlockscreen -->
+    <bool name="config_enable_puk_unlock_screen">true</bool>
+
+    <!-- Number of database connections opened and managed by framework layer
+         to handle queries on each database. -->
+    <integer name="db_connection_pool_size">3</integer>
+
+    <!-- Max space (in MB) allocated to DownloadManager to store the downloaded files
+         if they are to be stored in DownloadManager's data dir,
+         which typically is /data/data/com.android.providers.downloads/files. -->
+    <integer name="config_downloadDataDirSize">200</integer>
+
+    <!-- When the free space available in DownloadManager's data dir falls
+         below the percentage value specified by this param, DownloadManager
+         starts removing files to try to make percentage of available
+         free space above this threshold value. --> 
+    <integer name="config_downloadDataDirLowSpaceThreshold">10</integer>
+
+    <!-- When a database query is executed, the results retuned are paginated
+         in pages of size (in KB) indicated by this value -->
+    <integer name="config_cursorWindowSize">2048</integer>
+
+    <!-- Is the notification LED intrusive? Used to decide if there should be a disable option -->
+    <bool name="config_intrusiveNotificationLed">false</bool>
+
+
+    <!-- Base "touch slop" value used by ViewConfiguration as a
+         movement threshold where scrolling should begin.
+          -->
+    <dimen name="config_viewConfigurationTouchSlop">12dp</dimen>
+
+    <!-- The attenuation in dB applied to the lock/unlock sounds. -->
+    <integer name="config_lockSoundVolumeDb">0</integer>
+
+    <!-- reference volume index for music stream to limit headphone volume and display warning -->
+    <integer name="config_safe_media_volume_index">6</integer>
 </resources>
 
