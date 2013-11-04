@@ -10,5 +10,5 @@
 ## <sysfs_path> - List of sysfs paths to source devices
 ######################
 
-dev_mount storage_sd_card /storage/sdcard2 auto /devices/platform/sdhci-tegra.0/mmc_host/mmc1
+dev_mount storage_sd_card /storage/sdcard1 auto /devices/platform/sdhci-tegra.0/mmc_host/mmc1
 dev_mount usbdisk /storage/usbdisk auto /devices/platform/tegra-ehci.2
