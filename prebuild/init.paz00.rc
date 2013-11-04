@@ -245,12 +245,6 @@ service iprenew_bnep0 /system/bin/dhcpcd -n
 service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
     class late_start
 
-# Start GPS daemon
-#service gps-daemon /system/bin/glgps_nvidiaTegra2android -c /system/etc/gps/gpsconfig.xml
-#    class late_start
-#    user root
-#    group root
-
 # create filesystems if necessary
 service setup_fs /system/bin/setup_fs \
         /dev/block/mmcblk0p6 \
@@ -259,17 +253,6 @@ service setup_fs /system/bin/setup_fs \
     user root
     group root
     oneshot
-
-# configure MSC partition
-service mischelp /system/bin/mischelp /dev/block/mmcblk0p5 boot-recovery
-    disabled
-    class main
-    user root
-    group root
-    oneshot
-
-on property:sys.shutdown.requested=1recovery
-    start mischelp
 
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
@@ -303,11 +286,3 @@ on device-removed-/dev/ttyUSB3
                                                                                                    
 on property:init.svc.bootanim=stopped                                                              
     start wwlanselect
-
-# Fake touchscreen device driver
-#service faketsd /system/bin/faketsd
-#    class main
-#    user bluetooth
-#    group bluetooth
-#    oneshot
-
