@@ -350,7 +350,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 	memset(&videoIn->rb,0,sizeof(videoIn->rb));
     videoIn->rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     videoIn->rb.memory = V4L2_MEMORY_MMAP;
-    videoIn->rb.count = NB_BUFFER;
+    videoIn->rb.count = MAX_NB_BUFFER;
 
     ret = ioctl(fd, VIDIOC_REQBUFS, &videoIn->rb);
     if (ret < 0) {
@@ -358,7 +358,10 @@ int V4L2Camera::Init(int width, int height, int fps)
         return ret;
     }
 
-    for (int i = 0; i < NB_BUFFER; i++) {
+    ALOGD("Init: Allocated %d buffers (requested: %d)", videoIn->rb.count, MAX_NB_BUFFER);
+    videoIn->nbBuffers = videoIn->rb.count;
+
+    for (int i = 0; i < videoIn->nbBuffers; i++) {
 
         memset (&videoIn->buf, 0, sizeof (struct v4l2_buffer));
         videoIn->buf.index = i;
@@ -367,7 +370,7 @@ int V4L2Camera::Init(int width, int height, int fps)
 
         ret = ioctl (fd, VIDIOC_QUERYBUF, &videoIn->buf);
         if (ret < 0) {
-            ALOGE("Init: Unable to query buffer (%s)", strerror(errno));
+	    ALOGE("Init: Unable to query buffer %d (%s)", i, strerror(errno));
             return ret;
         }
 
@@ -477,12 +480,13 @@ void V4L2Camera::Uninit ()
     nDequeued = 0;
 
     /* Unmap buffers */
-    for (int i = 0; i < NB_BUFFER; i++)
+    for (int i = 0; i < videoIn->nbBuffers; i++)
 		if (videoIn->mem[i] != NULL) {
 			if (munmap(videoIn->mem[i], videoIn->buf.length) < 0)
 				ALOGE("Uninit: Unmap failed");
 			videoIn->mem[i] = NULL;
 		}
+		videoIn->nbBuffers = 0;
 		
 	if (videoIn->tmpBuffer)
 		free(videoIn->tmpBuffer);
