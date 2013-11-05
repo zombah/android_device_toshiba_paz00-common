@@ -156,6 +156,11 @@ on boot
     chown system system /sys/devices/system/cpu/cpufreq/interactive/sustain_load
     chmod 0660 /sys/devices/system/cpu/cpufreq/interactive/sustain_load
 
+# KSM settings
+    write /sys/kernel/mm/ksm/pages_to_scan 100
+    write /sys/kernel/mm/ksm/sleep_millisecs 500
+    write /sys/kernel/mm/ksm/run 1
+
 # Define DATA USAGE CTRL file permission
     chown system system /proc/net/xt_qtaguid/ctrl
     chmod 0664 /proc/net/xt_qtaguid/ctrl
