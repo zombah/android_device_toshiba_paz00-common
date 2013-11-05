@@ -260,10 +260,6 @@
     <!-- Enable lockscreen rotation by default -->
     <bool name="config_enableLockScreenRotation">false</bool>
 
-    <!-- Component name of the default wallpaper. This will be ImageWallpaper if not
-         specified -->
-    <string name="default_wallpaper_component" translatable="false">com.android.phasebeam/.PhaseBeamWallpaper</string>
-
     <!-- Default color for notification LED is green. -->
     <!-- <color name="config_defaultNotificationColor">#ff00ff00</color> -->
 
