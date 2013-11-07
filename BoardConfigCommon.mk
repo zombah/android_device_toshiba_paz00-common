@@ -43,6 +43,8 @@ BOARD_HAS_NO_SELECT_BUTTON              := true
 #BOARD_USE_CUSTOM_RECOVERY_FONT 		:= \"roboto_15x24.h\"
 BOARD_HAS_LARGE_FILESYSTEM              := true
 #TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
+RECOVERY_FSTAB_VERSION 			:= 2
+TARGET_RECOVERY_FSTAB 			:= device/toshiba/paz00-common/prebuild/fstab.ac100
 
 BOARD_WPA_SUPPLICANT_DRIVER             := NL80211
 #BOARD_WPA_SUPPLICANT_DRIVER             := WEXT
