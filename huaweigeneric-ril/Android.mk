@@ -1,5 +1,7 @@
 # Copyright 2012 The Android-x86 Open Source Project
 
+ifeq  ($(strip $(BOARD_USES_HUAWEIGENERIC_RIL)),true)
+
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -38,3 +40,5 @@ LOCAL_MODULE_TAGS := optional
 
 #
 include $(BUILD_SHARED_LIBRARY)
+
+endif

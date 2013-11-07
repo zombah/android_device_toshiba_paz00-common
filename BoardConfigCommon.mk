@@ -112,3 +112,7 @@ TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/l
 
 # Use less memory for dalvik
 TARGET_ARCH_LOWMEM 			:= true
+
+# Build Huaweigeneric-ril
+BOARD_USES_HUAWEIGENERIC_RIL		:= false
+
