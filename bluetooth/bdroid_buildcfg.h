@@ -23,4 +23,9 @@
 // Bluetooth Low Power Mode is supported on BT4.0
 #define HCILP_INCLUDED                 FALSE
 
+// 10.2 Updates
+#define BLE_INCLUDED FALSE
+#define BTA_GATT_INCLUDED FALSE
+#define SMP_INCLUDED FALSE
+
 #endif
