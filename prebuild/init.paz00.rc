@@ -4,6 +4,8 @@ on early-init
     mount debugfs debugfs /sys/kernel/debug
 
 on init
+    mkdir /boot
+    mkdir /recovery
     # See storage config details at http://source.android.com/tech/storage/
     mkdir /mnt/shell/emulated 0700 shell shell
     mkdir /storage/emulated 0555 root root
@@ -41,7 +43,7 @@ on fs
 #    mount ext4 /dev/block/mmcblk0p3 /system wait rw
 #    chmod 4755 /system/bin/pppd
 #    chmod 4755 /system/bin/abootimg
-    mount_all /fstab.ac100
+    mount_all /fstab.paz00
 
 # Basic modules loading below
 # install wifi modules
