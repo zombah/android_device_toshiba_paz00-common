@@ -134,7 +134,6 @@ BOARD_SEPOLICY_UNION += \
         device.te \
         file.te \
         mediaserver.te \
-        rild.te \
         surfaceflinger.te \
         system.te \
         zygote.te
