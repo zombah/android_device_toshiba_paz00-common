@@ -1,0 +1,7 @@
+#!/system/bin/sh
+
+PATH=/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
+
+busybox mount -o remount,rw /system
+chmod 4755 /system/bin/pppd
+busybox mount -o remount,ro /system
