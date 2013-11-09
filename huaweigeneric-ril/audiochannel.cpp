@@ -536,7 +536,7 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
                     &playBuffSize);
 	recBuffSize = playBuffSize;
 #else
-	android::AudioRecord::getMinFrameCount((int*)&recBuffSize,
+	android::AudioRecord::getMinFrameCount((size_t*)&recBuffSize,
 	                    ctx->sampling_rate * AUDIO_OVERSAMPLING, // Samples per second
 						format,
 						1);
@@ -551,7 +551,7 @@ int gsm_audio_tunnel_start(struct GsmAudioTunnel *ctx,const char* gsmvoicechanne
 	//while (recBuffSize < frame_size)  recBuffSize <<= 1;
 	//while (playBuffSize < frame_size) playBuffSize <<= 1;
 						
-	android::AudioTrack::getMinFrameCount((int*)&playBuffSize,
+	android::AudioTrack::getMinFrameCount((size_t*)&playBuffSize,
 						AUDIO_STREAM_VOICE_CALL,
 	                    ctx->sampling_rate * AUDIO_OVERSAMPLING); // Samples per second
 	
