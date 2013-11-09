@@ -29,7 +29,10 @@ ARCH_ARM_HAVE_TLS_REGISTER 		:= true
 #TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
 #TARGET_KERNEL_CONFIG 			:= paz00_android_defconfig
 
+# Graphics settings
 USE_OPENGL_RENDERER 			:= true
+BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
+BOARD_USE_SKIA_LCDTEXT			:= true
 
 # Modem
 TARGET_NO_RADIOIMAGE 			:= true
@@ -88,7 +91,10 @@ BOARD_USES_TINY_AUDIO_HW 		:= true
 # Grouper tinyhal
 BOARD_USES_GROUPER_TINYHAL		:= false
 
+# EGL
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
+BOARD_EGL_NEEDS_LEGACY_FB 		:= true
+
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
 # Partitions 
