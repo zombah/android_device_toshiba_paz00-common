@@ -46,6 +46,12 @@ static void *dummyDispatch(void *data, size_t datalen);
 #define dispatchCdmaSubscriptionSource dummyDispatch
 #define dispatchVoiceRadioTech dummyDispatch
 
+/* Android 4.3 new functions */
+#define dispatchDepersonalization dummyDispatch
+#define dispatchImsSms dummyDispatch
+#define dispatchUiccSubscripton dummyDispatch
+/* end 4.3 */
+
 static void *dispatchCallForward(void *data, size_t datalen);
 static void *dispatchDial(void *data, size_t datalen);
 static void *dispatchSIM_IO(void *data, size_t datalen);
@@ -78,6 +84,12 @@ static void dummyResponse(void);
 #define responseDataCallList dummyResponse
 #define responseGsmBrSmsCnf dummyResponse
 #define responseCdmaBrSmsCnf dummyResponse
+
+/* Android 4.3 new functions */
+#define responseCellInfoList dummyResponse
+#define responseGetDataCallProfile dummyResponse
+#define responseUiccSubscription dummyResponse
+/* end 4.3 */
 
 #define dispatchDataCall dispatchStrings
 #define responseSetupDataCall responseStrings
