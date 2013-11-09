@@ -124,3 +124,17 @@ BOARD_USES_HUAWEIGENERIC_RIL		:= false
 # Build Ericsson mbm-ril
 BOARD_USES_MBM_RIL			:= failse
 
+# SELinux stuff
+BOARD_SEPOLICY_DIRS += \
+        device/toshiba/paz00-common/sepolicy
+
+BOARD_SEPOLICY_UNION += \
+        file_contexts \
+        app.te \
+        device.te \
+        file.te \
+        mediaserver.te \
+        rild.te \
+        surfaceflinger.te \
+        system.te \
+        zygote.te
