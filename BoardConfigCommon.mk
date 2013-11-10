@@ -120,9 +120,9 @@ TARGET_USE_CUSTOM_LUN_FILE_PATH 	:= "/sys/devices/platform/tegra-udc.%d/gadget/l
 TARGET_ARCH_LOWMEM 			:= true
 
 # Build Huaweigeneric-ril
-BOARD_USES_HUAWEIGENERIC_RIL		:= false
+BOARD_USES_HUAWEIGENERIC_RIL		:= true
 # Build Ericsson mbm-ril
-BOARD_USES_MBM_RIL			:= failse
+BOARD_USES_MBM_RIL			:= true
 
 # SELinux stuff
 BOARD_SEPOLICY_DIRS += \
