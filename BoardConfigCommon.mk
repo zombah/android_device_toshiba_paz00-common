@@ -93,7 +93,7 @@ BOARD_USES_GROUPER_TINYHAL		:= false
 
 # EGL
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
-BOARD_EGL_NEEDS_LEGACY_FB 		:= false
+BOARD_EGL_NEEDS_LEGACY_FB 		:= true
 
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
