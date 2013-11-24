@@ -10,7 +10,7 @@ TARGET_BOARD_PLATFORM 			:= tegra
 TARGET_BOARD_INFO_FILE 			:= device/toshiba/paz00-common/board-info.txt
 TARGET_CPU_ABI 				:= armeabi-v7a
 TARGET_CPU_ABI2 			:= armeabi
-TARGET_CPU_VARIANT			:= tegra2
+TARGET_CPU_VARIANT			:= cortex-a9
 TARGET_ARCH_VARIANT 			:= armv7-a
 TARGET_ARCH_VARIANT_CPU 		:= cortex-a9
 TARGET_ARCH_VARIANT_FPU 		:= vfpv3-d16
@@ -93,6 +93,7 @@ BOARD_USES_GROUPER_TINYHAL		:= false
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
 BOARD_EGL_NEEDS_LEGACY_FB 		:= true
 BOARD_USES_TEGRA_HWC			:= true
+TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK 	:= true
 
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
