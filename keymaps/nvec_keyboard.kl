@@ -60,8 +60,8 @@ key 60    MEDIA_PLAY_PAUSE  WAKE
 key 61    MEDIA_STOP	    WAKE
 key 62    MEDIA_NEXT	    WAKE
 key 63    MENU              WAKE
-key 64    ZOOM_IN   	    WAKE
-key 65    ZOOM_OUT     	    WAKE
+key 64    BRIGHTNESS_DOWN   WAKE
+key 65    BRIGHTNESS_UP     WAKE
 key 66	  CALCULATOR	    WAKE
 key 68    VOLUME_DOWN       WAKE
 key 86    BACKSLASH	    WAKE
