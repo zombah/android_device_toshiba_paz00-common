@@ -187,7 +187,9 @@ on boot
     write /sys/block/mmcblk1/queue/read_ahead_kb 1024
 
 service wpa_supplicant /system/bin/wpa_supplicant \
-    -Dnl80211 -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
+    -Dnl80211 -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf \
+    -I/system/etc/wifi/wpa_supplicant_overlay.conf \
+    -e/data/misc/wifi/entropy.bin -g@android:wpa_wlan0
 #   we will start as root and wpa_supplicant will switch to user wifi
 #   after setting up the capabilities required for WEXT
 #   user wifi
