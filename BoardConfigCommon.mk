@@ -31,8 +31,6 @@ ARCH_ARM_HAVE_TLS_REGISTER 		:= true
 
 # Graphics settings
 USE_OPENGL_RENDERER 			:= true
-BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
-BOARD_USE_SKIA_LCDTEXT			:= true
 
 # Modem
 TARGET_NO_RADIOIMAGE 			:= true
@@ -94,6 +92,7 @@ BOARD_USES_GROUPER_TINYHAL		:= false
 # EGL
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
 BOARD_EGL_NEEDS_LEGACY_FB 		:= true
+BOARD_USES_TEGRA_HWC			:= true
 
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
