@@ -52,6 +52,10 @@ static void *dummyDispatch(void *data, size_t datalen);
 #define dispatchUiccSubscripton dummyDispatch
 /* end 4.3 */
 
+/* Android 4.4 new functions */
+#define dispatchSetInitialAttachApn dummyDispatch
+/* end 4.4 */
+
 static void *dispatchCallForward(void *data, size_t datalen);
 static void *dispatchDial(void *data, size_t datalen);
 static void *dispatchSIM_IO(void *data, size_t datalen);
