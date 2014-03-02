@@ -125,10 +125,10 @@ BOARD_USES_HUAWEIGENERIC_RIL		:= false
 BOARD_USES_MBM_RIL			:= true
 
 # SELinux stuff
-BOARD_SEPOLICY_DIRS += \
+#BOARD_SEPOLICY_DIRS += \
         device/toshiba/paz00-common/sepolicy
 
-BOARD_SEPOLICY_UNION += \
+#BOARD_SEPOLICY_UNION += \
         file_contexts \
         app.te \
         device.te \
