@@ -91,7 +91,7 @@ BOARD_USES_GROUPER_TINYHAL		:= false
 
 # EGL
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
-BOARD_USES_TEGRA_HWC			:= true
+BOARD_USES_TEGRA_HWC			:= false
 TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK 	:= true
 BOARD_EGL_NEEDS_FNW 			:= true
 BOARD_USE_MHEAP_SCREENSHOT 		:= true
