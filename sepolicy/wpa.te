@@ -1,0 +1,2 @@
+allow wpa rfkill_device:chr_file { read open };
+allow wpa wpa_socket:unix_dgram_socket { read write };

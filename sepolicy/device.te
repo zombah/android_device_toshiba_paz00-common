@@ -1,4 +1,7 @@
 type knv_device, dev_type;
-type nv_device, dev_type, mlstrustedobject;
+#type nv_device, dev_type, mlstrustedobject;
 type nvhost_device, dev_type;
 type nvhost_writable_device, dev_type, mlstrustedobject;
+type diag_device, dev_type;
+type rfkill_device, dev_type, mlstrustedobject;
+type sensors_block_device, dev_type;

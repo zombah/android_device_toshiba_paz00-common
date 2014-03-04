@@ -1,0 +1,2 @@
+allow init self:binder set_context_mgr;
+allow init wpa_socket:unix_dgram_socket { bind create };

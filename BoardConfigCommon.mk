@@ -127,15 +127,35 @@ BOARD_USES_HUAWEIGENERIC_RIL		:= false
 BOARD_USES_MBM_RIL			:= false
 
 # SELinux stuff
-#BOARD_SEPOLICY_DIRS += \
+HAVE_SELINUX 				:= true
+
+ifeq ($(HAVE_SELINUX),true)
+
+BOARD_SEPOLICY_DIRS += \
         device/toshiba/paz00-common/sepolicy
 
-#BOARD_SEPOLICY_UNION += \
-        file_contexts \
-        app.te \
-        device.te \
-        file.te \
-        mediaserver.te \
-        surfaceflinger.te \
-        system.te \
-        zygote.te
+BOARD_SEPOLICY_UNION := \
+    file_contexts \
+    app.te \
+    device.te \
+    drmserver.te \
+    file.te \
+    genfs_contexts \
+    healthd.te \
+    init.te \
+    media_app.te \
+    release_app.te \
+    mediaserver.te \
+    platform_app.te \
+    sensors_config.te \
+    shared_app.te \
+    surfaceflinger.te \
+    system_app.te \
+    system.te \
+    untrusted_app.te \
+    vold.te \
+    wpa_socket.te \
+    wpa.te \
+    zygote.te
+
+endif

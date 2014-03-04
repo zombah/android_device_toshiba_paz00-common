@@ -1,1 +1,6 @@
 allow zygote sysfs_devices_system_cpu:dir r_dir_perms;
+allow zygote init:fifo_file { read write getattr };
+allow zygote init:unix_stream_socket { read write };
+allow zygote devpts:chr_file { read write };
+allow zygote nvhost_writable_device:chr_file { read write open };
+allow zygote nvhost_writable_device:chr_file ioctl;
