@@ -41,9 +41,6 @@ TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
 #TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
 #TARGET_KERNEL_CONFIG 			:= paz00_android_defconfig
 
-# Graphics settings
-USE_OPENGL_RENDERER 			:= true
-
 # Modem
 TARGET_NO_RADIOIMAGE 			:= true
 
@@ -102,12 +99,22 @@ BOARD_USES_TINY_AUDIO_HW 		:= true
 BOARD_USES_GROUPER_TINYHAL		:= false
 
 # EGL
+USE_OPENGL_RENDERER                     := true
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
 BOARD_USES_TEGRA_HWC			:= false
 TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK 	:= true
 BOARD_EGL_NEEDS_FNW 			:= true
 BOARD_USE_MHEAP_SCREENSHOT 		:= true
 BOARD_EGL_WORKAROUND_BUG_10194508 	:= true
+
+BOARD_USES_OVERLAY 			:= true
+BOARD_USES_HGL 				:= true
+BOARD_HDMI_MIRROR_MODE 			:= Scale
+BOARD_EGL_NEEDS_LEGACY_FB 		:= true
+
+# Use nicer font rendering
+BOARD_USE_SKIA_LCDTEXT 			:= true
+BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
 
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
