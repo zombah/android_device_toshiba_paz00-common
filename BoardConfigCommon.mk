@@ -50,7 +50,7 @@ TARGET_NO_RADIOIMAGE 			:= true
 BOARD_UMS_LUNFILE 			:= "/sys/class/android_usb/android0/f_mass_storage/lun/file"
 BOARD_HAS_NO_SELECT_BUTTON              := true
 # Large fonts
-#BOARD_USE_CUSTOM_RECOVERY_FONT 		:= \"roboto_15x24.h\"
+BOARD_USE_CUSTOM_RECOVERY_FONT 		:= \"roboto_23x41.h\"
 BOARD_HAS_LARGE_FILESYSTEM              := true
 #TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
 RECOVERY_FSTAB_VERSION 			:= 2
