@@ -18,12 +18,24 @@ TARGET_CPU_SMP 				:= true
 # New 4.2 additions
 TARGET_ARCH				:= arm
 
+# Compiler Optimization - This is a @codefireX specific flag to use -O3 everywhere.
+ARCH_ARM_HIGH_OPTIMIZATION              := true
+# ANDROID, LINUX-ARM AND TLS REGISTER EMULATION
+ARCH_ARM_HAVE_TLS_REGISTER              := true
+# Avoid the generation of ldrcc instructions
+NEED_WORKAROUND_CORTEX_A9_745320        := true
+#define to use all of the Linaro Cortex-A9 optimized string funcs,
+#instead of subset known to work on all machines
+USE_ALL_OPTIMIZED_STRING_FUNCS          := true
+# customize the malloced address to be 16-byte aligned
+BOARD_MALLOC_ALIGNMENT                  := 16
+TARGET_EXTRA_CFLAGS                     := $(call cc-option,-mtune=cortex-a9) $(call cc-option,-mcpu=cortex-a9)
+
+TARGET_NO_BOOTLOADER                    := true
+TARGET_BOOTLOADER_BOARD_NAME            := paz00
 
 TARGET_NO_BOOTLOADER 			:= true
 TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
-
-# Tegra2 specific tweaks
-ARCH_ARM_HAVE_TLS_REGISTER 		:= true
 
 # Kernel
 #TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
