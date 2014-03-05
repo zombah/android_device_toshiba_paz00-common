@@ -171,3 +171,7 @@ BOARD_SEPOLICY_UNION := \
     zygote.te
 
 endif
+
+# Override healthd HAL
+BOARD_HAL_STATIC_LIBRARIES := libhealthd.tegra
+
