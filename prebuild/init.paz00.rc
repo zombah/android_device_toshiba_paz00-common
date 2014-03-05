@@ -9,8 +9,6 @@ on init
     # See storage config details at http://source.android.com/tech/storage/
     mkdir /mnt/shell/emulated 0700 shell shell
     mkdir /storage/emulated 0555 root root
-    mkdir /storage 0550 system sdcard_r
-    mkdir /storage/sdcard1 0000 system system
 
     export EXTERNAL_STORAGE /storage/emulated/legacy
     export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
@@ -27,12 +25,11 @@ on init
     # for backwards compatibility
     symlink /storage/sdcard1 /mnt/external_sd
 
-    # create directory for mounting usb drives
-    mkdir /storage/usbdisk 0000 system system
-    symlink /storage/usbdisk /mnt/usb_storage
-    symlink /storage/usbdisk /mnt/usbdisk
-    symlink /storage/usbdisk /mnt/usb
-    symlink /storage/usbdisk /usbdisk
+    # create directory for external mounts
+    mkdir /mnt/media_rw/sdcard1 0700 media_rw media_rw
+    mkdir /mnt/media_rw/usbdisk0 0700 media_rw media_rw
+    mkdir /storage/sdcard1 0700 root root
+    mkdir /storage/usbdisk0 0700 root root
 
 on early-boot
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
@@ -271,6 +268,14 @@ service setup_fs /system/bin/setup_fs \
     user root
     group root
     oneshot
+
+service fuse_sdcard1 /system/bin/sdcard -u 1023 -g 1023 -d /mnt/media_rw/sdcard1 /storage/sdcard1
+    class late_start
+    disabled
+
+service fuse_usbdisk0 /system/bin/sdcard -u 1023 -g 1023 -d /mnt/media_rw/usbdisk0 /storage/usbdisk0
+    class late_start
+    disabled
 
 # Powerbutton daemon from android-x86
 service powerbtnd /system/bin/powerbtnd
