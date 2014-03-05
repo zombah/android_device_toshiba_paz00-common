@@ -316,5 +316,8 @@
 
     <!-- If this is true, the screen will fade off. -->
     <bool name="config_animateScreenLights">false</bool>
+
+    <!-- Enable lockscreen translucent decor by default -->
+    <bool name="config_enableLockScreenTranslucentDecor">true</bool>
 </resources>
 
