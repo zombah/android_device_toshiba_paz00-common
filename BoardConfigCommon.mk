@@ -183,5 +183,7 @@ BOARD_SEPOLICY_UNION := \
 endif
 
 # Override healthd HAL
-BOARD_HAL_STATIC_LIBRARIES := libhealthd.tegra
+BOARD_HAL_STATIC_LIBRARIES 		:= libhealthd.tegra
 
+# OMX
+BOARD_OMX_NEEDS_LEGACY_AUDIO		:= true		
