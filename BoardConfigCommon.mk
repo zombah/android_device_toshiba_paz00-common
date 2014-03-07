@@ -112,9 +112,6 @@ BOARD_USES_HGL 				:= true
 BOARD_HDMI_MIRROR_MODE 			:= Scale
 BOARD_EGL_NEEDS_LEGACY_FB 		:= true
 
-# Some proprietary libs need reservedVectorImpl variants
-COMMON_GLOBAL_CFLAGS += -DNEEDS_VECTORIMPL_SYMBOLS
-
 # Use nicer font rendering
 BOARD_USE_SKIA_LCDTEXT 			:= true
 BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
