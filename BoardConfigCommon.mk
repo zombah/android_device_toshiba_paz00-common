@@ -112,6 +112,11 @@ BOARD_USES_HGL 				:= true
 BOARD_HDMI_MIRROR_MODE 			:= Scale
 BOARD_EGL_NEEDS_LEGACY_FB 		:= true
 
+SKIP_SET_METADATA 			:= true
+BOARD_USES_HWCOMPOSER 			:= true
+ENABLE_WEBGL 				:= true
+BOARD_EGL_SKIP_FIRST_DEQUEUE 		:= true
+
 # Use nicer font rendering
 BOARD_USE_SKIA_LCDTEXT 			:= true
 BOARD_NO_ALLOW_DEQUEUE_CURRENT_BUFFER 	:= true
