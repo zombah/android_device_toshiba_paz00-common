@@ -319,6 +319,6 @@
     <bool name="config_animateScreenLights">false</bool>
 
     <!-- Enable lockscreen translucent decor by default -->
-    <bool name="config_enableLockScreenTranslucentDecor">true</bool>
+    <bool name="config_enableLockScreenTranslucentDecor">false</bool>
 </resources>
 
