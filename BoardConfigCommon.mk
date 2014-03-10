@@ -31,11 +31,10 @@ USE_ALL_OPTIMIZED_STRING_FUNCS          := true
 BOARD_MALLOC_ALIGNMENT                  := 16
 TARGET_EXTRA_CFLAGS                     := $(call cc-option,-mtune=cortex-a9) $(call cc-option,-mcpu=cortex-a9)
 
+ARCH_ARM_USE_NON_NEON_MEMCPY 		:= true
+
 TARGET_NO_BOOTLOADER                    := true
 TARGET_BOOTLOADER_BOARD_NAME            := paz00
-
-TARGET_NO_BOOTLOADER 			:= true
-TARGET_BOOTLOADER_BOARD_NAME 		:= paz00
 
 # Kernel
 #TARGET_KERNEL_SOURCE 			:= kernel/toshiba/paz00
@@ -97,6 +96,8 @@ TARGET_USES_OLD_LIBSENSORS_HAL 		:= false
 BOARD_USES_TINY_AUDIO_HW 		:= true
 # Grouper tinyhal
 BOARD_USES_GROUPER_TINYHAL		:= false
+# OMX
+BOARD_OMX_NEEDS_LEGACY_AUDIO            := true
 
 # EGL
 USE_OPENGL_RENDERER                     := true
@@ -106,16 +107,17 @@ TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK 	:= true
 BOARD_EGL_NEEDS_FNW 			:= true
 BOARD_USE_MHEAP_SCREENSHOT 		:= true
 BOARD_EGL_WORKAROUND_BUG_10194508 	:= true
+BOARD_EGL_NEEDS_LEGACY_FB               := true
 
 BOARD_USES_OVERLAY 			:= true
 BOARD_USES_HGL 				:= true
 BOARD_HDMI_MIRROR_MODE 			:= Scale
-BOARD_EGL_NEEDS_LEGACY_FB 		:= true
-
 SKIP_SET_METADATA 			:= true
 BOARD_USES_HWCOMPOSER 			:= true
 ENABLE_WEBGL 				:= true
 BOARD_EGL_SKIP_FIRST_DEQUEUE 		:= true
+TARGET_OVERLAY_ALWAYS_DETERMINES_FORMAT := true
+USE_SET_METADATA 			:= false
 
 # Use nicer font rendering
 BOARD_USE_SKIA_LCDTEXT 			:= true
@@ -186,6 +188,3 @@ endif
 
 # Override healthd HAL
 BOARD_HAL_STATIC_LIBRARIES 		:= libhealthd.tegra
-
-# OMX
-BOARD_OMX_NEEDS_LEGACY_AUDIO		:= true		
