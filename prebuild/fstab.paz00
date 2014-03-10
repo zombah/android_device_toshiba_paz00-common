@@ -13,6 +13,6 @@
 /devices/platform/tegra-ehci.2                  auto auto defaults voldmanaged=usbdisk0:auto
 
 # recovery
-/dev/block/mmcblk0p1 /recovery    ext2 defaults recoveryonly
-/dev/block/mmcblk0p2 /boot        ext2 defaults recoveryonly
+/dev/block/mmcblk0p1 /recovery    ext2 defaults defaults
+/dev/block/mmcblk0p2 /boot        ext2 defaults defaults
 /dev/block/mmcblk0p5 /misc        emmc defaults recoveryonly
