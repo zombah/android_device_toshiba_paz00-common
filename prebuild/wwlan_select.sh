@@ -123,7 +123,12 @@ case "$idVendor" in
 
 *)
 	echo "unknown idVendor" >> $DEBUG_LOG
+	setprop rild.libpath /system/lib/libmbm-ril.so
+        setprop rild.libargs "-d /dev/ttyACM1 -i wwan0"
 	setprop ctl.stop ril-daemon
+	setprop ctl.start ril-daemon
+        echo enabled > ${Vendor/idVendor/}power/wakeup
+        echo auto > ${Vendor/idVendor/}power/control
 	;;
 esac
 
