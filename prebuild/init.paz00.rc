@@ -140,6 +140,18 @@ on boot
 #    chown bluetooth bluetooth /sys/class/rfkill/rfkill1/state
 #    chown bluetooth bluetooth /sys/class/rfkill/rfkill1/type
 
+# Enable USB auto suspend for MBM devices
+    write /sys/bus/usb/devices/2-1/power/autosuspend 3
+    write /sys/bus/usb/devices/2-1/power/control auto
+    write /sys/bus/usb/devices/2-1/power/wakeup enabled
+    chown radio radio /dev/cdc-wdm0
+    chmod 0660 /dev/cdc-wdm0
+    chown radio radio /dev/cdc-wdm1
+    chmod 0660 /dev/cdc-wdm1
+
+# Set NITZ Feature on or off
+    setprop mbm.ril.config.nitz no
+
 # backlight
     chown system system /sys/class/backlight/pwm-backlight/brightness
 
