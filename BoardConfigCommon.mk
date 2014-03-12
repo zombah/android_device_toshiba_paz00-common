@@ -149,8 +149,6 @@ TARGET_ARCH_LOWMEM 			:= true
 
 # Build Huaweigeneric-ril
 BOARD_USES_HUAWEIGENERIC_RIL		:= false
-# Build Ericsson mbm-ril
-BOARD_USES_MBM_RIL			:= true
 
 # SELinux stuff
 HAVE_SELINUX 				:= true
