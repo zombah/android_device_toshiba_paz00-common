@@ -41,10 +41,17 @@
 /dev/block/mmcblk0p1    	0660    system  system
 /dev/tegra-crypto       	0660    system  system
 /dev/bma150             	0660    system  system
-/dev/ttyACM*    		0660    radio   system
 /dev/ttyHS*    			0660    radio   system
 /dev/tegra_dc* 			0666 	system  system
 /dev/rfkill     		0660    wifi    wifi
+
+# MBM devices
+/dev/ttyACM0                    0660    radio       radio
+/dev/ttyACM1                    0660    radio       radio
+/dev/ttyACM2                    0660    system      system
+/dev/cdc-wdm0                   0660    system      system
+/dev/cdc-wdm1                   0660    system      system
+
 /sys/devices/platform/rfkill_gpio/rfkill/rfkill*	state   0666   radio   system
 /sys/devices/platform/tegra-ehci.1/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill* 		state	0660 bluetooth net_bt_stack
 /sys/devices/platform/tegra-ehci.1/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill*          type   0660 bluetooth net_bt_stack
