@@ -151,6 +151,8 @@ on boot
 
 # Set NITZ Feature on or off
     setprop mbm.ril.config.nitz no
+# Enable RIL Fast Dormancy
+    setprop mbm.ril.config.fd yes
 
 # backlight
     chown system system /sys/class/backlight/pwm-backlight/brightness
