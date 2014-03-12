@@ -308,31 +308,3 @@ service fuse_usbdisk0 /system/bin/sdcard -u 1023 -g 1023 -d /mnt/media_rw/usbdis
 service powerbtnd /system/bin/powerbtnd
     class main
 
-# 3G library selection                                                                             
-service wwlanselect /system/bin/sh /system/bin/wwlan_select.sh                                     
-    disabled                                                                                       
-    class main                                                                                     
-    user root                                                                                      
-    group shell                                                                                    
-    oneshot                                                                                        
-                                                                                                   
-on device-added-/dev/ttyUSB0                                                                       
-    start wwlanselect                                                                              
-on device-added-/dev/ttyUSB1                                                                       
-    start wwlanselect                                                                              
-on device-added-/dev/ttyUSB2                                                                       
-    start wwlanselect                                                                              
-on device-added-/dev/ttyUSB3                                                                       
-    start wwlanselect                                                                              
-                                                                                                   
-on device-removed-/dev/ttyUSB0                                                                     
-    stop ril-daemon                                                                                
-on device-removed-/dev/ttyUSB1                                                                     
-    stop ril-daemon                                                                                
-on device-removed-/dev/ttyUSB2                                                                     
-    stop ril-daemon                                                                                
-on device-removed-/dev/ttyUSB3                                                                     
-    stop ril-daemon                                                                                
-                                                                                                   
-on property:init.svc.bootanim=stopped                                                              
-    start wwlanselect
