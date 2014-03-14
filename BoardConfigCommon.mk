@@ -97,27 +97,27 @@ BOARD_USES_TINY_AUDIO_HW 		:= true
 # Grouper tinyhal
 BOARD_USES_GROUPER_TINYHAL		:= false
 # OMX
-BOARD_OMX_NEEDS_LEGACY_AUDIO            := true
+#BOARD_OMX_NEEDS_LEGACY_AUDIO            := true
 
 # EGL
 USE_OPENGL_RENDERER                     := true
 BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
-BOARD_USES_TEGRA_HWC			:= false
+#BOARD_USES_TEGRA_HWC			:= false
 TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK 	:= true
-BOARD_EGL_NEEDS_FNW 			:= true
-BOARD_USE_MHEAP_SCREENSHOT 		:= true
-BOARD_EGL_WORKAROUND_BUG_10194508 	:= true
-BOARD_EGL_NEEDS_LEGACY_FB               := true
+#BOARD_EGL_NEEDS_FNW 			:= true
+#BOARD_USE_MHEAP_SCREENSHOT 		:= true
+#BOARD_EGL_WORKAROUND_BUG_10194508 	:= true
+#BOARD_EGL_NEEDS_LEGACY_FB               := true
 
-BOARD_USES_OVERLAY 			:= true
-BOARD_USES_HGL 				:= true
-BOARD_HDMI_MIRROR_MODE 			:= Scale
-SKIP_SET_METADATA 			:= true
-BOARD_USES_HWCOMPOSER 			:= true
-ENABLE_WEBGL 				:= true
-BOARD_EGL_SKIP_FIRST_DEQUEUE 		:= true
-TARGET_OVERLAY_ALWAYS_DETERMINES_FORMAT := true
-USE_SET_METADATA 			:= false
+#BOARD_USES_OVERLAY 			:= true
+#BOARD_USES_HGL 				:= true
+#BOARD_HDMI_MIRROR_MODE 			:= Scale
+#SKIP_SET_METADATA 			:= true
+#BOARD_USES_HWCOMPOSER 			:= true
+#ENABLE_WEBGL 				:= true
+#BOARD_EGL_SKIP_FIRST_DEQUEUE 		:= true
+#TARGET_OVERLAY_ALWAYS_DETERMINES_FORMAT := true
+#USE_SET_METADATA 			:= false
 
 # Use nicer font rendering
 BOARD_USE_SKIA_LCDTEXT 			:= true
