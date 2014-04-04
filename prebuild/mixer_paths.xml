@@ -1,14 +1,14 @@
-<!-- TinyHAL configuration file for Toshiba AC100 -->
 <mixer>
 
-   <!-- We are able to have most of our routing static so do that -->
+     <!-- These are the initial mixer settings -->
+
      <!-- Master Playback -->
      <ctl name="Master Playback Volume" val="63" />
      <ctl name="Master Playback Switch" val="1" />
 
      <!-- Headphones -->
      <ctl name="Headphone Playback Volume" val="63" />
-     <!--<ctl name="Headphone Playback Switch" val="1" />-->
+     <ctl name="Headphone Playback Switch" val="0" />
      <ctl name="HPL Mix DACL2HP Playback Switch" val="1" />
      <ctl name="HPR Mix DACR2HP Playback Switch" val="1" />
      <ctl name="Left Headphone Mux" val="HP Left Mix" />
@@ -16,7 +16,7 @@
 
      <!-- Speakers -->
      <ctl name="Speaker Playback Volume" val="63" />
-     <!--<ctl name="Speaker Playback Switch" val="1" />-->
+     <ctl name="Speaker Playback Switch" val="0" />
      <ctl name="Int Spk Switch" val="1" />
      <ctl name="Speaker Mix DAC2SPK Playback Switch" val="1" />
      <ctl name="SpeakerOut Mux" val="HPOut Mix" />
@@ -27,18 +27,19 @@
      <ctl name="Rec Capture Volume" val="20" />
 
      <!-- Internal Mic -->
-     <!--<ctl name="DMIC En Capture Switch" val="1" />-->
+     <ctl name="DMIC En Capture Switch" val="0" />
      <ctl name="DMIC PreFilter Capture Switch" val="1" />
      <ctl name="DMICL Mix DMICL2ADC Capture Switch" val="1" />
      <ctl name="DMIC Boost Capture Volume" val="3" />
 
-     <!-- Internal Mic -->
-     <!--<ctl name="Left Capture Mix MIC12REC_L Capture Switch" val="0" />-->
+     <!-- External (headset) Mic -->
+     <ctl name="Left Capture Mix MIC12REC_L Capture Switch" val="0" />
      <ctl name="Mic 1 Boost Volume" val="1" />
      <ctl name="Mic1 Playback Volume" val="1" />
 
      <!-- Capture I2S -->
      <ctl name="I2SOut Mux" val="ADC LR" />
+
 
 <path name="speaker">
      <ctl name="Speaker Playback Switch" val="1" />
@@ -48,11 +49,15 @@
      <ctl name="Headphone Playback Switch" val="1" />
 </path>
 
-<path name="builtin-mic">
+<path name="main-mic-top">
      <ctl name="DMIC En Capture Switch" val="1" />
 </path>
 
-<path name="headset">
+<path name="main-mic-left">
+     <ctl name="DMIC En Capture Switch" val="1" />
+</path>
+
+<path name="headset-mic">
      <ctl name="Left Capture Mix MIC12REC_L Capture Switch" val="1" />
 </path>
 
