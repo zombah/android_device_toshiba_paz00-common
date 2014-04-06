@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "audio_hw_primary"
-/*#define LOG_NDEBUG 0*/
+#define LOG_NDEBUG 0
 
 #include <errno.h>
 #include <pthread.h>
@@ -178,11 +178,15 @@ static void release_buffer(struct resampler_buffer_provider *buffer_provider,
 
 static void select_devices(struct audio_device *adev)
 {
+    ALOGD("select_devices+");
+
     int headphone_on;
     int speaker_on;
     int hdmi_on;
     int docked;
     int main_mic_on;
+
+    ALOGV("out_devices=%d in_devices=%d active_out=%c active_in=%c", adev->out_device, adev->in_device, adev->active_out!=NULL?'y':'n', adev->active_in!=NULL?'y':'n');
 
     headphone_on = adev->out_device & (AUDIO_DEVICE_OUT_WIRED_HEADSET |
                                     AUDIO_DEVICE_OUT_WIRED_HEADPHONE);
@@ -212,6 +216,8 @@ static void select_devices(struct audio_device *adev)
 
     ALOGV("hp=%c speaker=%c dock=%c main-mic=%c", headphone_on ? 'y' : 'n',
           speaker_on ? 'y' : 'n', docked ? 'y' : 'n', main_mic_on ? 'y' : 'n');
+
+    ALOGD("select_devices-");
 }
 
 /* must be called with hw device and output stream mutexes locked */
@@ -300,6 +306,8 @@ static int start_output_stream(struct stream_out *out)
         pthread_mutex_unlock(&in->lock);
     }
 
+    ALOGD("outpcm open: card=%d, device=%d, rate=%d", PCM_CARD, device, out->pcm_config->rate);
+
     out->pcm = pcm_open(PCM_CARD, device, PCM_OUT | PCM_NORESTART | PCM_MONOTONIC, out->pcm_config);
 
     if (out->pcm && !pcm_is_ready(out->pcm)) {
@@ -367,6 +375,8 @@ static int start_input_stream(struct stream_in *in)
             do_out_standby(out);
         pthread_mutex_unlock(&out->lock);
     }
+
+    ALOGD("inpcm open: card=%d, device=%d, rate=%d", PCM_CARD, device, adev->active_out->pcm_config->rate);
 
     in->pcm = pcm_open(PCM_CARD, device, PCM_IN, in->pcm_config);
 
@@ -552,6 +562,8 @@ static int out_dump(const struct audio_stream *stream, int fd)
 
 static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
+    ALOGD("out_set_parameters:%s", kvpairs);
+
     struct stream_out *out = (struct stream_out *)stream;
     struct audio_device *adev = out->dev;
     struct str_parms *parms;
@@ -886,6 +898,9 @@ static int in_dump(const struct audio_stream *stream, int fd)
 
 static int in_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
+
+    ALOGD("in_set_parameters:%s", kvpairs);
+
     struct stream_in *in = (struct stream_in *)stream;
     struct audio_device *adev = in->dev;
     struct str_parms *parms;
@@ -1078,6 +1093,8 @@ static void adev_close_output_stream(struct audio_hw_device *dev,
 
 static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 {
+    ALOGD("adev_set_parameters:%s", kvpairs);
+
     struct audio_device *adev = (struct audio_device *)dev;
     struct str_parms *parms;
     char *str;
