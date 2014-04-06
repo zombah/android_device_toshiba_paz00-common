@@ -180,12 +180,14 @@ static void select_devices(struct audio_device *adev)
 {
     int headphone_on;
     int speaker_on;
+    int hdmi_on;
     int docked;
     int main_mic_on;
 
     headphone_on = adev->out_device & (AUDIO_DEVICE_OUT_WIRED_HEADSET |
                                     AUDIO_DEVICE_OUT_WIRED_HEADPHONE);
     speaker_on = adev->out_device & AUDIO_DEVICE_OUT_SPEAKER;
+    hdmi_on = adev->out_device & AUDIO_DEVICE_OUT_AUX_DIGITAL;
     docked = adev->out_device & AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET;
     main_mic_on = adev->in_device & AUDIO_DEVICE_IN_BUILTIN_MIC;
 
@@ -195,6 +197,8 @@ static void select_devices(struct audio_device *adev)
         audio_route_apply_path(adev->ar, "speaker");
     if (headphone_on)
         audio_route_apply_path(adev->ar, "headphone");
+    if (hdmi_on)
+        audio_route_apply_path(adev->ar, "hdmi");
     if (docked)
         audio_route_apply_path(adev->ar, "dock");
     if (main_mic_on) {
@@ -265,6 +269,10 @@ static int start_output_stream(struct stream_out *out)
      * (speaker/headphone) PCM or the BC SCO PCM open at
      * the same time.
      */
+    if (adev->out_device & AUDIO_DEVICE_OUT_AUX_DIGITAL) {
+        device = PCM_DEVICE_HDMI;
+        out->pcm_config = &pcm_config_out;
+    } else
     if (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO) {
         device = PCM_DEVICE_SCO;
         out->pcm_config = &pcm_config_sco;
@@ -564,7 +572,9 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
              * because SCO uses a different PCM.
              */
             if ((val & AUDIO_DEVICE_OUT_ALL_SCO) ^
-                    (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO)) {
+                    (adev->out_device & AUDIO_DEVICE_OUT_ALL_SCO) || 
+                (val & AUDIO_DEVICE_OUT_AUX_DIGITAL) ^ 
+                    (adev->out_device & AUDIO_DEVICE_OUT_AUX_DIGITAL)) {
                 pthread_mutex_lock(&out->lock);
                 do_out_standby(out);
                 pthread_mutex_unlock(&out->lock);
