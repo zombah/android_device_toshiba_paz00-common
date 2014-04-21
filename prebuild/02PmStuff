@@ -6,7 +6,7 @@ echo "15" > /sys/module/wakelock/parameters/debug_mask
 
 #LPx Suspend mode
 #switch to lp1 because r15 and r16 have lp0 harmony issues
-echo "lp1" > /sys/power/suspend/mode
+echo "lp0" > /sys/power/suspend/mode
 
 #Cpuquiet
 #echo "balance" > /sys/devices/system/cpu/cpuquiet/current_governor
@@ -18,4 +18,4 @@ echo "lp1" > /sys/power/suspend/mode
 #echo "auto" > /sys/bus/usb/devices/2-1.3/power/level
 
 # Do not suspend
-echo "nosuspend" > /sys/power/wake_lock
+#echo "nosuspend" > /sys/power/wake_lock
