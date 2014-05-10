@@ -48,7 +48,7 @@ int openfds(struct pollfd pfds[])
 			}
 
 			// TODO: parse /etc/excluded-input-devices.xml
-			if (!strcmp(name, "NVEC power button")) {
+			if (!strcmp(name, "power key")) {
 				ALOGI("open %s(%s) ok", de->d_name, name);
 				pfds[cnt].events = POLLIN;
 				pfds[cnt++].fd = fd;
