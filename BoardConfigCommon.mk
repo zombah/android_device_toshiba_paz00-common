@@ -66,6 +66,9 @@ BOARD_HOSTAPD_PRIVATE_LIB               := private_lib_driver_cmd
 BOARD_LEGACY_NL80211_STA_EVENTS         := false
 BOARD_NO_APSME_ATTR			:= false
 
+# 4.4.3 Wifi addition
+CONFIG_CTRL_IFACE                       := true
+
 # Wifi base
 BOARD_WLAN_DEVICE                       := wlan0
 WIFI_DRIVER_MODULE_NAME                 := "rt2800usb"
