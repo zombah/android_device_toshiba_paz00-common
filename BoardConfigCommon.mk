@@ -19,7 +19,7 @@ TARGET_CPU_SMP 				:= true
 TARGET_ARCH				:= arm
 
 # Compiler Optimization - This is a @codefireX specific flag to use -O3 everywhere.
-ARCH_ARM_HIGH_OPTIMIZATION              := true
+#ARCH_ARM_HIGH_OPTIMIZATION              := true
 # ANDROID, LINUX-ARM AND TLS REGISTER EMULATION
 ARCH_ARM_HAVE_TLS_REGISTER              := true
 # Avoid the generation of ldrcc instructions
