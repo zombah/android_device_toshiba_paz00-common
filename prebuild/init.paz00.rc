@@ -33,20 +33,13 @@ on fs
 
 # Basic modules loading below
 # install wifi modules
-    insmod /system/vendor/lib/modules/compat.ko
-    insmod /system/vendor/lib/modules/sch_codel.ko
-    insmod /system/vendor/lib/modules/sch_fq_codel.ko 
-    insmod /system/vendor/lib/modules/cfg80211.ko
-    insmod /system/vendor/lib/modules/mac80211.ko
-    insmod /system/vendor/lib/modules/rt2x00lib.ko
-    insmod /system/vendor/lib/modules/rt2x00usb.ko
-    insmod /system/vendor/lib/modules/rt2800lib.ko
-#    insmod /system/lib/modules/cfg80211.ko
-##    insmod /system/lib/modules/lib80211.ko
-#    insmod /system/lib/modules/mac80211.ko 
-#    insmod /system/lib/modules/rt2x00lib.ko
-#    insmod /system/lib/modules/rt2x00usb.ko
-#    insmod /system/lib/modules/rt2800lib.ko
+    insmod /system/lib/modules/compat.ko
+    insmod /system/lib/modules/cfg80211.ko
+    insmod /system/lib/modules/lib80211.ko
+    insmod /system/lib/modules/mac80211.ko 
+    insmod /system/lib/modules/rt2x00lib.ko
+    insmod /system/lib/modules/rt2x00usb.ko
+    insmod /system/lib/modules/rt2800lib.ko
 # install fs modules    
     insmod /system/lib/modules/ntfs.ko
     insmod /system/lib/modules/cifs.ko
