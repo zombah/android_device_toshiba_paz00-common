@@ -46,9 +46,6 @@
 # include <sys/disk.h> /* DKIOCGETBLOCKCOUNT */
 #endif
 
-#if defined(ANDROID)
-#include "abootimg-android.h"
-#endif
 
 #ifdef HAS_BLKID
 #include <blkid/blkid.h>

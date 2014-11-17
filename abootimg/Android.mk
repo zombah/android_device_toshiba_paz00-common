@@ -1,4 +1,4 @@
-#ifeq  ($(strip $(BUILD_INCLUDE_ABOOTIMG)),true)
+ifeq  ($(strip $(BUILD_INCLUDE_ABOOTIMG)),true)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -13,4 +13,4 @@ LOCAL_MODULE := abootimg
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_EXECUTABLE)
 
-#endif
+endif
