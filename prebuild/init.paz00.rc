@@ -26,8 +26,6 @@ on early-boot
 
 on fs
     setprop ro.crypto.umount_sd false
-    mount ext4 /dev/block/mmcblk0p3 /system wait rw
-    chmod 4755 /system/bin/pppd
     mount_all /fstab.ac100
 
 # Basic modules loading below
