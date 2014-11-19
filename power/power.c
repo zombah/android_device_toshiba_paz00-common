@@ -77,7 +77,7 @@ static void grouper_power_set_interactive(struct power_module *module, int on)
      */
 
     sysfs_write("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq",
-                on ? "1000000" : "500000");
+                on ? "1000000" : "608000");
 
     sysfs_write("/sys/devices/system/cpu/cpufreq/interactive/input_boost",
                 on ? "1" : "0");
