@@ -4,5 +4,5 @@
 # specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
 
 /dev/block/platform/sdhci-tegra.3/by-name/APP	/system	ext4      ro	wait
-/dev/block/platform/sdhci-tegra.3/by-name/CAC	/cache	ext4      discard,noatime,nosuid,nodev,nomblk_io_submit,errors=panic	wait
-/dev/block/platform/sdhci-tegra.3/by-name/UDA	/data	ext4      discard,noatime,nosuid,nodev,nomblk_io_submit,errors=panic	wait,encryptable=footer
+/dev/block/platform/sdhci-tegra.3/by-name/CAC	/cache	ext4      nosuid,nodev,noatime,nodiratime,noauto_da_alloc,barrier=0,errors=panic	wait
+/dev/block/platform/sdhci-tegra.3/by-name/UDA	/data	ext4      nosuid,nodev,noatime,nodiratime,noauto_da_alloc,barrier=0,errors=panic	wait,encryptable=footer
