@@ -155,11 +155,11 @@ on boot
     setprop mbm.ril.config.fd yes
 
 # backlight
-    chown system system /sys/class/backlight/pwm-backlight/brightness
+    chown system system /sys/class/backlight/backlight/brightness
 
 # leds 
-    chown system system /sys/class/leds/nvec-led/brightness
-    chmod 0660 /sys/class/leds/nvec-led/brightness
+    chown system system /sys/class/leds/paz00-led/brightness
+    chmod 0660 /sys/class/leds/paz00-led/brightness
 
 # power
     chown system system /sys/module/cpu_tegra/parameters/cpu_user_cap
