@@ -155,7 +155,7 @@ static int set_light_backlight(struct light_device_t *dev,
 	}
 	//---
 	pthread_mutex_lock(&g_lock);
-	err = write_int("/sys/class/backlight/pwm-backlight/brightness",
+	err = write_int("/sys/class/backlight/backlight/brightness",
 			brightness);
 	pthread_mutex_unlock(&g_lock);
 
@@ -172,7 +172,7 @@ set_notification_light(struct light_state_t const* state)
         ALOGV("set_notification_light brightnessMode=%d, colorRGB=%08X, flashMode=%d, onMS=%d, offMS=%d\n",
                         state->brightnessMode, state->color, state->flashMode, state->flashOnMS, state->flashOffMS);
 
-        write_int("/sys/class/leds/nvec-led/brightness", blink);
+        write_int("/sys/class/leds/paz00-led/brightness", blink);
 
 	ALOGV("blink written");
 
