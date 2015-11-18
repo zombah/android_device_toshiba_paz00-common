@@ -227,8 +227,8 @@ service iprenew_bnep0 /system/bin/dhcpcd -n
 
 # create filesystems if necessary
 service setup_fs /system/bin/setup_fs \
-        /dev/block/mmcblk0p6 \
-        /dev/block/mmcblk0p4
+        /dev/block/platform/soc0/c8000600.sdhci/by-num/p6 \
+        /dev/block/platform/soc0/c8000600.sdhci/by-num/p4
     class core
     user root
     group root
