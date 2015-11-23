@@ -53,8 +53,8 @@
 /dev/cdc-wdm1                   0660    system      system
 
 /sys/devices/platform/rfkill_gpio/rfkill/rfkill*	state   0666   radio   system
-/sys/devices/platform/tegra-ehci.1/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill* 		state	0660 bluetooth net_bt_stack
-/sys/devices/platform/tegra-ehci.1/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill*          type   0660 bluetooth net_bt_stack
+/sys/devices/soc0/c5004000.usb/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill* 		state	0660 bluetooth net_bt_stack
+/sys/devices/soc0/c5004000.usb/usb1/1-1/1-1.2/1-1.2:1.0/bluetooth/hci0/rfkill*          type   0660 bluetooth net_bt_stack
 
 # for bluetooth nodes
 #/dev/uhid                 	0660   	bluetooth bluetooth
