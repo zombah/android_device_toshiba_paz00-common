@@ -236,8 +236,8 @@ service setup_fs /system/bin/setup_fs \
     oneshot
 
 # Powerbutton daemon from android-x86
-service powerbtnd /system/bin/powerbtnd
-    class main
+#service powerbtnd /system/bin/powerbtnd
+#    class main
 
 # 3G library selection                                                                             
 service wwlanselect /system/bin/sh /system/bin/wwlan_select.sh                                     
