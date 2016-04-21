@@ -7,14 +7,24 @@ insmod /system/lib/modules/psmouse.ko resetafter=0
 # Asix usb ethernet devices
 insmod /system/lib/modules/asix.ko
 # Sony joysticks support
-insmod /system/lib/modules/hid-sony.ko
+#insmod /system/lib/modules/hid-sony.ko
 # USB Audio support
 insmod /system/lib/modules/snd-hwdep.ko
 insmod /system/lib/modules/snd-rawmidi.ko
 insmod /system/lib/modules/snd-usbmidi-lib.ko
 insmod /system/lib/modules/snd-usb-audio.ko
 # RNDIS
-insmod /system/lib/modules/rndis_host.ko
-insmod /system/lib/modules/rndis_wlan.ko
+#insmod /system/lib/modules/rndis_host.ko
+#insmod /system/lib/modules/rndis_wlan.ko
+# install fs modules
+#insmod /system/lib/modules/ntfs.ko
+#insmod /system/lib/modules/cifs.ko
+# install tun for vpns
+insmod /system/lib/modules/tun.ko
+# install additional modules
+insmod /system/lib/modules/lm90.ko
+#insmod /system/lib/modules/tegra_wdt.ko
+# install zram module
+insmod /system/lib/modules/zram.ko
 #
 # Add additional modules here

@@ -44,9 +44,6 @@ on fs
     insmod /system/lib/modules/rt2x00lib.ko
     insmod /system/lib/modules/rt2x00usb.ko
     insmod /system/lib/modules/rt2800lib.ko
-# install fs modules    
-    insmod /system/lib/modules/ntfs.ko
-    insmod /system/lib/modules/cifs.ko
 # install camera modules 
     insmod /system/lib/modules/videodev.ko
     insmod /system/lib/modules/v4l2-common.ko
@@ -74,13 +71,6 @@ on fs
     insmod /system/lib/modules/cdc_ether.ko
     insmod /system/lib/modules/cdc-acm.ko
     insmod /system/lib/modules/cdc-wdm.ko
-# install tun for vpns
-    insmod /system/lib/modules/tun.ko
-# install additional modules
-    insmod /system/lib/modules/lm90.ko
-    insmod /system/lib/modules/tegra_wdt.ko
-# install zram module
-    insmod /system/lib/modules/zram.ko
 
 on post-fs-data
 # Setup paths used for socket communication with the dhcp daemon(dhcpd)
