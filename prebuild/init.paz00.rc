@@ -20,6 +20,10 @@ on early-init
     symlink /storage/usbdisk /mnt/usbdisk
     symlink /storage/usbdisk /usbdisk
 
+    # create directories for boot partitions
+    mkdir /boot 0000 system system
+    mkdir /recovery 0000 system system
+
 on early-boot
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
