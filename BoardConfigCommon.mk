@@ -38,7 +38,7 @@ BOARD_HAS_NO_SELECT_BUTTON              := true
 # Large fonts
 #BOARD_USE_CUSTOM_RECOVERY_FONT 		:= \"roboto_15x24.h\"
 BOARD_HAS_LARGE_FILESYSTEM              := true
-#TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/prebuild/init.recovery.rc
+#TARGET_RECOVERY_INITRC 			:= device/toshiba/paz00-common/ramdisk/init.recovery.rc
 
 # Wifi related defines
 USES_BCMHD_NL80211			:= true
@@ -78,7 +78,7 @@ TARGET_USES_OLD_LIBSENSORS_HAL 		:= false
 # Tinyhal
 BOARD_USES_TINY_AUDIO_HW 		:= true
 
-BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuild/egl.cfg
+BOARD_EGL_CFG 				:= device/toshiba/paz00-common/prebuilt/system/etc/egl.cfg
 TARGET_OTA_ASSERT_DEVICE 		:= paz00,ac100,GT-P7510
 
 # Partitions 
