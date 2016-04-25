@@ -79,7 +79,7 @@ key 107   EXPLORER	    WAKE
 key 108   DPAD_DOWN         WAKE
 key 109   PAGE_DOWN	    WAKE
 key 110   APP_SWITCH	    WAKE
-key 111   FORWARD_DEL	    WAKE
+key 111   SETTINGS	    WAKE
 key 125   HOME		    WAKE
 key 139   MENU              WAKE
 key 217   SEARCH            WAKE
