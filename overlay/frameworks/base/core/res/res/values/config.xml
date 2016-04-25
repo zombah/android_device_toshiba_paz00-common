@@ -320,5 +320,7 @@
 
     <!-- Default LED off time for notification LED in milliseconds. -->
     <!-- <integer name="config_defaultNotificationLedOff">5000</integer> -->
+    <string name="config_deviceKeyHandlerLib">/system/framework/com.cyanogenmod.paz00kh.jar</string>
+    <string name="config_deviceKeyHandlerClass">com.cyanogenmod.paz00kh.KeyHandler</string>
 </resources>
 
