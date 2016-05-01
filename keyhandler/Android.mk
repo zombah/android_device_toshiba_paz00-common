@@ -5,7 +5,7 @@ LOCAL_SRC_FILES := \
        $(call all-subdir-java-files)
 
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE:= com.cyanogenmod.asusdec
+LOCAL_MODULE:= com.cyanogenmod.paz00kh
 include $(BUILD_JAVA_LIBRARY)
 
 include $(CLEAR_VARS)
